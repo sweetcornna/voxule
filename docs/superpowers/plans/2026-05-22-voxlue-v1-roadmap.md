@@ -1,6 +1,6 @@
 # voxlue v1 实现路线图与分工总览
 
-> 日期：2026-05-22 · 状态：待执行
+> 日期：2026-05-22 · 状态：**v1 核心六份计划全部完成并合入 `main`，整体回归通过**（见 §7）
 > 配套设计文档：`docs/superpowers/specs/2026-05-21-voxlue-architecture-design.md`
 > 配套分计划：本目录 `2026-05-22-voxlue-02..06-*.md`（共 5 份）
 
@@ -23,14 +23,14 @@
 
 ## 1. v1 计划地图
 
-| 计划 | 标题 | 主要产出 | 主责轨 | 依赖 |
+| 计划 | 标题 | 主要产出 | 主责轨 | 依赖 / 状态 |
 |---|---|---|---|---|
-| 01 | 项目骨架与数据层 | `VoxlueData` 包（4 个 @Model、容器、CapsuleStore） | 协作者 | —— ✅ 已完成 |
-| 02 | 录音→装裱→回放主循环 | `AudioEngine` 服务；埋下/装裱/回放/样片墙 UI | 双轨 | 01 |
-| 03 | TriggerEngine 三把锁 | `TriggerEngine`+`GeofenceScheduler`+`NotificationService`；灵动岛与地图 UI | 双轨 | 01、02 |
-| 04 | 设计系统与液态玻璃 | `VoxlueDesign` 包（tokens、暗房控件、玻璃导航、显影动效） | 前端 | 无（可最先做） |
-| 05 | 声音圈共享 | `CircleService`（CKShare）；声音圈 UI | 双轨 | 01、02 |
-| 06 | 云端 agent 闭环 | `AgentGateway`+`SignalDistiller`+`IntelligenceService`；serverless 代理 | 双轨 | 01、02、03 |
+| 01 | 项目骨架与数据层 | `VoxlueData` 包（4 个 @Model、容器、CapsuleStore） | 协作者 | —— · ✅ 已合入 |
+| 02 | 录音→装裱→回放主循环 | `AudioEngine` 服务；埋下/装裱/回放/样片墙 UI | 双轨 | 01 · ✅ PR #2 |
+| 03 | TriggerEngine 三把锁 | `TriggerEngine`+`GeofenceScheduler`+`NotificationService`；灵动岛与地图 UI | 双轨 | 01、02 · ✅ PR #3 |
+| 04 | 设计系统与液态玻璃 | `VoxlueDesign` 包（tokens、暗房控件、玻璃导航、显影动效） | 前端 | 无 · ✅ PR #1 |
+| 05 | 声音圈共享 | `CircleService`（CKShare）；声音圈 UI | 双轨 | 01、02 · ✅ PR #4 |
+| 06 | 云端 agent 闭环 | `AgentGateway`+`SignalDistiller`+`IntelligenceService`；serverless 代理 | 双轨 | 01、02、03 · ✅ PR #5 |
 
 ### 依赖与并行图
 
@@ -258,3 +258,45 @@ public protocol IntelligenceServicing: Sendable {
 - `2026-05-22-voxlue-04-design-system.md` —— 设计系统与液态玻璃
 - `2026-05-22-voxlue-05-circle-sharing.md` —— 声音圈共享
 - `2026-05-22-voxlue-06-agent-loop.md` —— 云端 agent 闭环
+
+---
+
+## 7. v1 执行结果与整体回归（2026-05-22）
+
+六份计划已全部执行、过代码评审、落实修复并合入 `main`。本节记录落地结果与一次跨六份计划的整体回归。
+
+### 7.1 计划落地
+
+| 计划 | PR | 评审 / 返修要点 |
+|---|---|---|
+| 04 设计系统 | #1 | 评审通过，无返修。`VoxlueDesign` 包先行落地，供其余计划复用。 |
+| 02 录放主循环 | #2 | 3 项 Critical：共享 `AudioEngine` 拆为录、放两个独立实例；计时器泄漏修复；错误统一走告警弹窗分流。 |
+| 03 触发引擎 | #3 | 接通通知点击路由（新增 `NotificationDelegate`）；清理围栏裁剪死代码。 |
+| 05 声音圈共享 | #4 | `DeepLinkRouter` 加防重入保护；`RecordingResult` 补 `Hashable`、`Identifiable` 归位。 |
+| 06 云端 agent | #5 | 2 项 Critical：浮现 BGTask 从未提交 → `.task` 内补 `scheduleNextSurfacing()`；cadence 改动不重排 → 设置页改后即时取消并重排。另加 phase 校验、JSON 解析加固、请求超时、Worker `tsc` 加固。 |
+
+### 7.2 整体回归结果
+
+| 检查项 | 结果 |
+|---|---|
+| `swift test`（VoxlueKit 包，macOS） | ✅ 108 测试通过 |
+| App 构建（`xcodebuild` iPhone 17 模拟器） | ✅ BUILD SUCCEEDED |
+| `voxuleTests` | ✅ 通过 |
+| `voxuleUITests` | ✅ 通过（含录音→装裱→回放主循环端到端） |
+| 临床措辞合规扫描（`scripts/check-clinical-words.sh`） | ✅ 无命中 |
+| Worker 类型检查（`backend/agent-proxy` `tsc`） | ✅ 通过 |
+| App 启动冒烟 | ✅ 正常启动 |
+
+### 7.3 执行期适配
+
+各计划独立成文、各自假设了不同的 App 壳层；执行时 `voxuleApp.swift` 采取**逐计划合并**而非替换，依赖装配（`AppEnvironment` / `AppDependencies` / `ServiceContainer` / `AgentContainer`）按需新建，视图接入 `RootTabView` 各 Tab。Swift 6.2 严格并发与 iOS-only API 各处用 `#if os(iOS)` 守护以保 macOS `swift test` 可编译；`Capsule` / `Circle` 模型名与 SwiftUI 形状冲突处以 `VoxlueData.` 限定消歧。
+
+### 7.4 仍需在开发者环境收尾
+
+以下需真机 / 账号 / Xcode 工程操作，超出无头环境能力：
+
+- **Widget Extension 目标**：`voxule/VoxlueWidget/` 源文件已就绪，须在 Xcode 新建 Widget Extension target 并加入这些文件。
+- **真 CKShare 共享**：声音圈共享链路需真机 + iCloud 账号验证。
+- **agent 代理部署**：`cd backend/agent-proxy && wrangler deploy`，部署后把真实 Worker 地址填入 `voxuleApp.agentProxyURL`。
+- **三视图接导航**：cadence 设置 / HealthKit 授权 / 浮现卡三个视图已交付，待接入导航。
+- **真 HealthKit / agent / CloudKit**：均需真机 + 对应账号与大模型 API key 才能端到端联调。
