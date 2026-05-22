@@ -18,7 +18,7 @@ struct RootTabView: View {
                 NavigationStack { CapsuleMapView() }
             }
             Tab("我", systemImage: "person.crop.circle") {
-                PlaceholderTab(title: "我", note: "声音圈与设置 —— 计划 05 充实。")
+                CircleListView()
             }
         }
         .sheet(isPresented: routedSheetBinding) {
@@ -54,19 +54,6 @@ struct RoutedCapsuleDetailView: View {
                 systemImage: "questionmark.circle",
                 description: Text("它可能已被划掉。")
             )
-        }
-    }
-}
-
-/// 标签占位页。
-private struct PlaceholderTab: View {
-    let title: String
-    let note: String
-
-    var body: some View {
-        NavigationStack {
-            ContentUnavailableView(title, systemImage: "hourglass", description: Text(note))
-                .navigationTitle(title)
         }
     }
 }
