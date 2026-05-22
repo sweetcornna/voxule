@@ -13,33 +13,6 @@ final class voxuleUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    /// 端到端验证数据层：通过 App UI 写入一枚胶囊，并确认重启 App 后它仍在（持久化）。
-    @MainActor
-    func testAddCapsulePersistsAcrossRelaunch() throws {
-        let app = XCUIApplication()
-        app.launch()
-
-        let addButton = app.buttons["加一枚样本"]
-        XCTAssertTrue(addButton.waitForExistence(timeout: 5), "找不到「加一枚样本」按钮")
-
-        let countBefore = app.cells.count
-        addButton.tap()
-
-        XCTAssertTrue(
-            waitForCellCount(app, equals: countBefore + 1, timeout: 5),
-            "点按后胶囊未写入列表"
-        )
-
-        // 重启 App —— 列表行数应保持不变，证明已持久化。
-        app.terminate()
-        app.launch()
-
-        XCTAssertTrue(
-            waitForCellCount(app, equals: countBefore + 1, timeout: 5),
-            "重启后胶囊未持久化"
-        )
-    }
-
     @MainActor
     func testLaunchPerformance() throws {
         measure(metrics: [XCTApplicationLaunchMetric()]) {
@@ -47,26 +20,45 @@ final class voxuleUITests: XCTestCase {
         }
     }
 
-    /// 验证 VoxlueDesign 设计图鉴可从调试视图进入并正常渲染。
+    /// 端到端验证 v1 主循环：冲一张 → 装裱埋下 → 样片墙列出 → 进详情回放。
+    /// 用 -uiTestFakeAudio 注入假音频服务，避开真麦克风。
     @MainActor
-    func testDesignCatalogRenders() throws {
+    func testRecordBuryPlayMainLoop() throws {
         let app = XCUIApplication()
+        app.launchArguments = ["-uiTestFakeAudio"]
         app.launch()
 
-        let catalogButton = app.buttons["设计图鉴"]
-        XCTAssertTrue(catalogButton.waitForExistence(timeout: 5), "找不到「设计图鉴」入口")
-        catalogButton.tap()
+        let countBefore = app.cells.count
 
-        // 图鉴页应出现区段标题，证明 VoxlueDesign 控件成功渲染。
+        // 冲一张 → 冲洗台 → 录音 → 停止。
+        app.buttons["冲一张"].tap()
+        let recordButton = app.buttons["开始冲洗"]
+        XCTAssertTrue(recordButton.waitForExistence(timeout: 5), "未进入冲洗台")
+        recordButton.tap()
+        let stopButton = app.buttons["停止"]
+        XCTAssertTrue(stopButton.waitForExistence(timeout: 5), "录音未开始")
+        stopButton.tap()
+
+        // 进入装裱 → 埋下。
+        let buryButton = app.buttons["埋下"]
+        XCTAssertTrue(buryButton.waitForExistence(timeout: 5), "未进入装裱视图")
+        buryButton.tap()
+
+        // 回到样片墙 —— 多出一行。
         XCTAssertTrue(
-            app.staticTexts["纸 · 墨 · 朱 八色"].waitForExistence(timeout: 5),
-            "设计图鉴未渲染"
+            waitForCellCount(app, equals: countBefore + 1, timeout: 5),
+            "埋下后样片墙未新增一行"
         )
 
-        let shot = XCTAttachment(screenshot: app.screenshot())
-        shot.name = "design-catalog"
-        shot.lifetime = .keepAlways
-        add(shot)
+        // 进详情 → 播放。
+        app.cells.firstMatch.tap()
+        let playButton = app.buttons["播放"]
+        XCTAssertTrue(playButton.waitForExistence(timeout: 5), "未进入胶囊详情")
+        playButton.tap()
+        XCTAssertTrue(
+            app.buttons["暂停"].waitForExistence(timeout: 5),
+            "点播放后未切到可暂停状态"
+        )
     }
 
     /// 轮询等待列表行数达到目标值，吸收 @Query 的异步刷新延迟。
