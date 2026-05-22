@@ -52,8 +52,8 @@ public final class FakeCircleServicing: CircleServicing {
     }
 
     /// 一个 URL 是否长得像 CKShare 邀请链接。真实 CKShare 链接形如
-    /// `https://www.icloud.com/share/<token>`。
-    public static func looksLikeShareURL(_ url: URL) -> Bool {
+    /// `https://www.icloud.com/share/<token>`。纯函数，`nonisolated` 便于各处调用。
+    nonisolated public static func looksLikeShareURL(_ url: URL) -> Bool {
         guard let host = url.host(), host.contains("icloud.com") else { return false }
         return url.path().contains("/share/")
     }
