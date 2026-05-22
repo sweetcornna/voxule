@@ -94,6 +94,9 @@ export default {
     } catch {
       return jsonResponse({ error: 'invalid JSON' }, 400);
     }
+    if (body.phase !== 'start' && body.phase !== 'continue') {
+      return jsonResponse({ error: 'invalid phase' }, 400);
+    }
 
     // 把设备来的摘要 + 上下文整形成给大模型的用户消息。
     const userContent =
@@ -137,9 +140,14 @@ export default {
         content?: { type: string; text?: string }[];
       };
       const text = data.content?.find((c) => c.type === 'text')?.text ?? '';
-      const match = text.match(/\{[\s\S]*\}/);
-      if (match) {
-        const parsed = JSON.parse(match[0]) as Partial<AgentReply>;
+      // 优先把整段当 JSON 解析；失败再回退到花括号截取（贪婪，仅作兜底）。
+      const trimmed = text.trim();
+      const jsonText =
+        trimmed.startsWith('{') && trimmed.endsWith('}')
+          ? trimmed
+          : (text.match(/\{[\s\S]*\}/)?.[0] ?? null);
+      if (jsonText) {
+        const parsed = JSON.parse(jsonText) as Partial<AgentReply>;
         reply = {
           toolCalls: Array.isArray(parsed.toolCalls) ? parsed.toolCalls : [],
           finished: parsed.finished !== false,

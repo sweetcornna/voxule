@@ -12,6 +12,8 @@ public final class AgentGateway: AgentGatewaying {
     private let client: RemoteModelClient
     private let trigger: TriggerEngineProtocol
     private let store: CapsuleStore
+    /// 当前浮现频率档（用户 cadence 设置）—— 随上下文上行供 agent 权衡。
+    private let cadence: String
     /// 闭环最多轮数 —— 防 agent 脚本异常时无限循环。
     private let maxTurns: Int
 
@@ -20,12 +22,14 @@ public final class AgentGateway: AgentGatewaying {
         client: RemoteModelClient,
         trigger: TriggerEngineProtocol,
         store: CapsuleStore,
+        cadence: String = "occasionally",
         maxTurns: Int = 8
     ) {
         self.distiller = distiller
         self.client = client
         self.trigger = trigger
         self.store = store
+        self.cadence = cadence
         self.maxTurns = maxTurns
     }
 
@@ -74,7 +78,7 @@ public final class AgentGateway: AgentGatewaying {
                     placeName: capsule.placeName
                 )
             }
-        return AgentContext(candidates: candidates, cadence: "occasionally")
+        return AgentContext(candidates: candidates, cadence: cadence)
     }
 
     // MARK: - 工具派发

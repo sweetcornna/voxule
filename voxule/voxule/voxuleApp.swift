@@ -70,7 +70,12 @@ struct voxuleApp: App {
                 .environment(dependencies)
                 .environment(services)
                 .environment(shareRouter)
-                .task { await dependencies.bootstrap() }
+                .task {
+                    await dependencies.bootstrap()
+                    // 排第一次浮现唤醒 —— .backgroundTask 只注册处理器、不提交请求，
+                    // 没有这一步整条 agent 闭环永不触发。幂等：同标识请求会被替换。
+                    await Self.scheduleNextSurfacing()
+                }
                 // 进站深链：CKShare 邀请 → 声音圈路由；voxlue://capsule → 胶囊路由。
                 .onCloudKitShareAccepted { url in
                     shareRouter.handleIncomingShare(url: url)

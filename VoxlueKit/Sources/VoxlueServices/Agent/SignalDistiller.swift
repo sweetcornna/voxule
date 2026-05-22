@@ -34,6 +34,8 @@ public struct SignalDistiller: SignalDistilling {
     // MARK: - 原始读数 → 抽象 Level（映射只在设备内）
 
     /// 紧绷度：综合负心情、低 HRV、高静息心率。无数据时取 medium。
+    /// 阈值刻意偏「不打扰」：`.high` 需两个负向信号，`.low` 一个正向信号即可 ——
+    /// 宁可少判定紧绷，也不轻易催 agent 浮现。
     static func tensionLevel(from snapshot: HealthSnapshot?) -> StateDigest.Level {
         guard let snapshot else { return .medium }
         var score = 0

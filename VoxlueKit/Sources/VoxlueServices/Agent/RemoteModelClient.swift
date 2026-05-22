@@ -79,6 +79,8 @@ public final class HTTPRemoteModelClient: RemoteModelClient, @unchecked Sendable
     private func post<Body: Encodable>(_ body: Body) async throws -> AgentReply {
         var request = URLRequest(url: proxyURL)
         request.httpMethod = "POST"
+        // 后台任务运行时间有限，给代理调用一个较短超时，超时即走 hold 兜底。
+        request.timeoutInterval = 15
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         // 注意：这里没有 Authorization 头 —— key 由代理持有，客户端不碰。
         request.httpBody = try JSONEncoder().encode(body)

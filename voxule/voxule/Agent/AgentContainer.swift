@@ -30,7 +30,8 @@ final class AgentContainer {
             liveActivity: LiveActivityController()
         )
         self.gateway = AgentGateway(
-            distiller: distiller, client: client, trigger: trigger, store: store
+            distiller: distiller, client: client, trigger: trigger, store: store,
+            cadence: CadenceSetting.current.rawValue
         )
         self.intelligence = IntelligenceService()
     }

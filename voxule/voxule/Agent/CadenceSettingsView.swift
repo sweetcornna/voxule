@@ -1,4 +1,5 @@
 import SwiftUI
+import BackgroundTasks
 
 /// 情绪胶囊浮现频率（架构文档 §6）。用户可调，「关」则 agent 不再主动浮现。
 enum CadenceSetting: String, CaseIterable, Identifiable {
@@ -60,6 +61,13 @@ struct CadenceSettingsView: View {
                     Button {
                         selection = cadence
                         CadenceSetting.current = cadence
+                        // 改频率即刻生效：「关」取消待发唤醒，否则按新间隔重排。
+                        if cadence == .off {
+                            BGTaskScheduler.shared.cancel(
+                                taskRequestWithIdentifier: voxuleApp.surfacingTaskID)
+                        } else {
+                            Task { await voxuleApp.scheduleNextSurfacing() }
+                        }
                     } label: {
                         HStack(alignment: .firstTextBaseline) {
                             VStack(alignment: .leading, spacing: 2) {
