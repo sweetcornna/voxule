@@ -3,15 +3,14 @@ import Foundation
 import SwiftData
 @testable import VoxlueData
 
-@MainActor
-private func makeStore() throws -> CapsuleStore {
-    let container = try VoxlueModelContainer.make(inMemory: true)
-    return CapsuleStore(context: container.mainContext)
-}
+// 注意：容器必须留在每个测试函数自己的作用域里。
+// ModelContext 不强引用它的 ModelContainer —— 若把容器创建放进一个
+// 返回后即出栈的 helper，容器会被释放，后续 context.insert 会崩溃。
 
 @MainActor
 @Test func addThenAllCapsulesReturnsIt() throws {
-    let store = try makeStore()
+    let container = try VoxlueModelContainer.make(inMemory: true)
+    let store = CapsuleStore(context: container.mainContext)
     try store.add(Capsule(title: "咖啡馆的雨"))
     let all = try store.allCapsules()
     #expect(all.count == 1)
@@ -20,7 +19,8 @@ private func makeStore() throws -> CapsuleStore {
 
 @MainActor
 @Test func allCapsulesSortedByCreatedAtDescending() throws {
-    let store = try makeStore()
+    let container = try VoxlueModelContainer.make(inMemory: true)
+    let store = CapsuleStore(context: container.mainContext)
     let older = Capsule(title: "旧", createdAt: Date(timeIntervalSince1970: 1000))
     let newer = Capsule(title: "新", createdAt: Date(timeIntervalSince1970: 2000))
     try store.add(older)
@@ -31,7 +31,8 @@ private func makeStore() throws -> CapsuleStore {
 
 @MainActor
 @Test func deleteRemovesCapsule() throws {
-    let store = try makeStore()
+    let container = try VoxlueModelContainer.make(inMemory: true)
+    let store = CapsuleStore(context: container.mainContext)
     let capsule = Capsule(title: "划掉这张")
     try store.add(capsule)
     try store.delete(capsule)
@@ -40,7 +41,8 @@ private func makeStore() throws -> CapsuleStore {
 
 @MainActor
 @Test func updateStatePersists() throws {
-    let store = try makeStore()
+    let container = try VoxlueModelContainer.make(inMemory: true)
+    let store = CapsuleStore(context: container.mainContext)
     let capsule = Capsule(title: "显影测试")
     try store.add(capsule)
     try store.updateState(capsule, to: .developing)
