@@ -968,4 +968,14 @@ git commit -m "feat: App 接入 VoxlueData 数据层并端到端验证"
 - **测试容器生命周期**：`ModelContext` 不强引用 `ModelContainer`；`CapsuleStoreTests` 改为每个测试在自身作用域内持有容器。
 - **代码评审后补充**：`capsuleInsertAndFetch` 增加锁关联值的完整往返断言；新增 `moodLockWithDateRoundTrip`、`updateStateToOpenedSetsOpenedAt` 两个测试；删除脚手架文件 `Placeholder.swift`。
 - **最终测试数**：`swift test --package-path VoxlueKit` → **19 个测试全部通过**。
-- **未完成**：Task 1（Xcode 工程创建）与 Task 9（App 集成）须在 Xcode 图形界面完成，待办。
+
+### Task 1 & Task 9 收尾（2026-05-22）
+
+- **Xcode 工程**：已建默认模板工程，名为 `voxule`（小写，仓库目录同名），`objectVersion 77` 的同步文件夹格式 —— 源码文件夹自动纳入构建，无需在 `project.pbxproj` 里逐一登记文件。
+- **接入本地包**：未走 Xcode GUI，直接手改 `project.pbxproj` —— 新增 `XCLocalSwiftPackageReference`（`relativePath = ../VoxlueKit`）、`XCSwiftPackageProductDependency`（`VoxlueData`）并链入 App 目标。
+- **命名冲突**：`VoxlueData.Capsule`（模型）与 `SwiftUI.Capsule`（内置形状）同名。同时 `import SwiftUI` 与 `VoxlueData` 的视图里必须写全 `VoxlueData.Capsule` 消歧义（`@Query` 宏生成代码不接受 `private` 类型别名）。
+- **启动降级**：`voxuleApp` 对 `VoxlueModelContainer.make()` 失败做降级 —— CloudKit 不可用（未登录 iCloud、缺能力配置等）时退回纯本地持久化存储，App 不再 `fatalError`，数据仍落地、只是不跨设备同步。
+- **CloudKit 能力**：以 `voxule/voxule/voxule.entitlements`（iCloud 容器 + CloudKit 服务）+ 构建设置 `INFOPLIST_KEY_UIBackgroundModes = remote-notification` 配置。**实际同步仍需** 开发者账号在 CloudKit Dashboard 创建容器 `iCloud.com.voxlue.app`，并以带该能力的 Team 完成签名。
+- **部署目标**：工程为 iOS 26.5（Xcode 26.5 默认），与计划所写 26.0 略有出入；与包 `.iOS(.v26)` 兼容，未改动。
+- **端到端验证**：`xcodebuild build` 通过；App 在 iPhone 17 模拟器启动正常（`DebugRootView` 显示「胶囊：0」）；`voxuleUITests` 新增 `testAddCapsulePersistsAcrossRelaunch` —— 通过 App UI 点按写入胶囊、重启 App 后确认持久化，**测试通过**。
+- **构建命令**：模拟器无签名构建/测试用 `CODE_SIGNING_ALLOWED=NO`；本机无 iPhone 16 模拟器，改用 iPhone 17。

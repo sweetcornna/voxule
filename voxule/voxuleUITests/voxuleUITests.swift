@@ -10,34 +10,55 @@ import XCTest
 final class voxuleUITests: XCTestCase {
 
     override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
-
-        // In UI tests it is usually best to stop immediately when a failure occurs.
         continueAfterFailure = false
-
-        // In UI tests it’s important to set the initial state - such as interface orientation - required for your tests before they run. The setUp method is a good place to do this.
     }
 
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
-    }
-
+    /// 端到端验证数据层：通过 App UI 写入一枚胶囊，并确认重启 App 后它仍在（持久化）。
     @MainActor
-    func testExample() throws {
-        // UI tests must launch the application that they test.
+    func testAddCapsulePersistsAcrossRelaunch() throws {
         let app = XCUIApplication()
         app.launch()
 
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        // XCUIAutomation Documentation
-        // https://developer.apple.com/documentation/xcuiautomation
+        let addButton = app.buttons["加一枚样本"]
+        XCTAssertTrue(addButton.waitForExistence(timeout: 5), "找不到「加一枚样本」按钮")
+
+        let countBefore = app.cells.count
+        addButton.tap()
+
+        XCTAssertTrue(
+            waitForCellCount(app, equals: countBefore + 1, timeout: 5),
+            "点按后胶囊未写入列表"
+        )
+
+        // 重启 App —— 列表行数应保持不变，证明已持久化。
+        app.terminate()
+        app.launch()
+
+        XCTAssertTrue(
+            waitForCellCount(app, equals: countBefore + 1, timeout: 5),
+            "重启后胶囊未持久化"
+        )
     }
 
     @MainActor
     func testLaunchPerformance() throws {
-        // This measures how long it takes to launch your application.
         measure(metrics: [XCTApplicationLaunchMetric()]) {
             XCUIApplication().launch()
         }
+    }
+
+    /// 轮询等待列表行数达到目标值，吸收 @Query 的异步刷新延迟。
+    @MainActor
+    private func waitForCellCount(
+        _ app: XCUIApplication,
+        equals target: Int,
+        timeout: TimeInterval
+    ) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if app.cells.count == target { return true }
+            usleep(200_000)
+        }
+        return app.cells.count == target
     }
 }
