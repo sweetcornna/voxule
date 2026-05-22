@@ -950,9 +950,22 @@ git commit -m "feat: App 接入 VoxlueData 数据层并端到端验证"
 
 ## 完成标准
 
-- `cd VoxlueKit && swift test` 全绿（17 个测试通过）。
+- `swift test --package-path VoxlueKit` 全绿（19 个测试通过）。
 - App 在模拟器可运行，能写入并持久化胶囊。
 - 数据模型遵守 CloudKit 镜像约束，已配置 iCloud/CloudKit 能力。
 - 全部改动已提交 git。
 
 下一份计划：**计划 02 · 录音→装裱→回放主循环 + 基础设计系统**。
+
+---
+
+## 执行后修订记录（2026-05-22）
+
+计划 01 执行中发现并修正了若干问题，最终实现以仓库代码为准：
+
+- **环境**：`swift-tools-version` 须为 6.2（`.v26` 平台所需）；构建 SwiftData / iOS App 必须安装完整 Xcode —— Command Line Tools 缺 Swift Testing 运行时与 SwiftData 宏插件。
+- **Lock 持久化**：SwiftData 无法可靠持久化带关联值的 Codable 枚举。`Capsule` 改为私有 `lockData: Data`（JSON 编码）+ 计算属性 `lock`，对外 API 不变。
+- **测试容器生命周期**：`ModelContext` 不强引用 `ModelContainer`；`CapsuleStoreTests` 改为每个测试在自身作用域内持有容器。
+- **代码评审后补充**：`capsuleInsertAndFetch` 增加锁关联值的完整往返断言；新增 `moodLockWithDateRoundTrip`、`updateStateToOpenedSetsOpenedAt` 两个测试；删除脚手架文件 `Placeholder.swift`。
+- **最终测试数**：`swift test --package-path VoxlueKit` → **19 个测试全部通过**。
+- **未完成**：Task 1（Xcode 工程创建）与 Task 9（App 集成）须在 Xcode 图形界面完成，待办。

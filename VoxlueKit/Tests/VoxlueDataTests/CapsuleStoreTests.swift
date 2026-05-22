@@ -48,3 +48,16 @@ import SwiftData
     try store.updateState(capsule, to: .developing)
     #expect(try store.allCapsules().first?.state == .developing)
 }
+
+@MainActor
+@Test func updateStateToOpenedSetsOpenedAt() throws {
+    let container = try VoxlueModelContainer.make(inMemory: true)
+    let store = CapsuleStore(context: container.mainContext)
+    let capsule = Capsule(title: "回放测试")
+    try store.add(capsule)
+    #expect(capsule.openedAt == nil)
+    try store.updateState(capsule, to: .opened)
+    let fetched = try store.allCapsules().first
+    #expect(fetched?.state == .opened)
+    #expect(fetched?.openedAt != nil)
+}

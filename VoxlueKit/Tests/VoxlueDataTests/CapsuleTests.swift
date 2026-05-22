@@ -19,6 +19,12 @@ import SwiftData
     #expect(fetched.first?.title == "咖啡馆的雨")
     #expect(fetched.first?.state == .buried)
     #expect(fetched.first?.lock.kind == .date)
+    // 完整断言锁的关联值经持久化往返无损 —— 这正是 lockData 设计要保证的。
+    if case .date(let unlockDate) = fetched.first?.lock {
+        #expect(unlockDate == Date(timeIntervalSince1970: 1_800_000_000))
+    } else {
+        Issue.record("锁的 case 应为 .date")
+    }
 }
 
 @MainActor

@@ -9,7 +9,8 @@ public final class Circle {
     public var ownerID: String = ""
     public var createdAt: Date = Date()
 
-    /// CloudKit 镜像要求关系可选。
+    /// 单向 to-many 关系（CircleMember 不持有反向的 circle 引用）—— v1 有意为之：
+    /// 成员只随 Circle 级联增删，不会被独立删除。CloudKit 镜像要求关系可选。
     @Relationship(deleteRule: .cascade)
     public var members: [CircleMember]? = []
 

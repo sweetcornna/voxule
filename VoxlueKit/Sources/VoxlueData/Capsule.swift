@@ -35,6 +35,7 @@ public final class Capsule {
     public var authorID: String = ""
     public var authorName: String = ""
 
+    /// 录制地点（拍下这张「相」时人在哪），与 `Lock.place` 的解锁围栏坐标是两回事。
     public var latitude: Double?
     public var longitude: Double?
     public var placeName: String?
@@ -45,6 +46,8 @@ public final class Capsule {
     public var createdAt: Date = Date()
     public var openedAt: Date?
 
+    /// 创建时只设录制流程已知的字段；latitude/longitude/placeName/weather/tags/note
+    /// 等元数据由上层在创建后补写。
     public init(
         id: UUID = UUID(),
         title: String = "",

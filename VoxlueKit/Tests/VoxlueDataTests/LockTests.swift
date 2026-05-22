@@ -27,3 +27,10 @@ import Foundation
     #expect(Lock.mood(notBefore: nil).kind == .mood)
     #expect(Lock.date(.now).kind == .date)
 }
+
+@Test func moodLockWithDateRoundTrip() throws {
+    let lock = Lock.mood(notBefore: Date(timeIntervalSince1970: 1_800_000_000))
+    let data = try JSONEncoder().encode(lock)
+    let decoded = try JSONDecoder().decode(Lock.self, from: data)
+    #expect(decoded == lock)
+}
