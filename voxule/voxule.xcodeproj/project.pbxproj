@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		D1A0000000000000000000A3 /* VoxlueData in Frameworks */ = {isa = PBXBuildFile; productRef = D1A0000000000000000000A2 /* VoxlueData */; };
 		D1A0000000000000000000B3 /* VoxlueDesign in Frameworks */ = {isa = PBXBuildFile; productRef = D1A0000000000000000000B2 /* VoxlueDesign */; };
+		D1A0000000000000000000C3 /* VoxlueServices in Frameworks */ = {isa = PBXBuildFile; productRef = D1A0000000000000000000C2 /* VoxlueServices */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -59,6 +60,7 @@
 			files = (
 				D1A0000000000000000000A3 /* VoxlueData in Frameworks */,
 				D1A0000000000000000000B3 /* VoxlueDesign in Frameworks */,
+				D1A0000000000000000000C3 /* VoxlueServices in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -121,6 +123,7 @@
 			packageProductDependencies = (
 				D1A0000000000000000000A2 /* VoxlueData */,
 				D1A0000000000000000000B2 /* VoxlueDesign */,
+				D1A0000000000000000000C2 /* VoxlueServices */,
 			);
 			productName = voxule;
 			productReference = D12098C42FC0104C001D1733 /* voxule.app */;
@@ -407,6 +410,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "voxlue 需要麦克风，为你冲洗一段声音。";
 				INFOPLIST_KEY_UIBackgroundModes = "remote-notification";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -451,6 +455,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "voxlue 需要麦克风，为你冲洗一段声音。";
 				INFOPLIST_KEY_UIBackgroundModes = "remote-notification";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -637,6 +642,10 @@
 		D1A0000000000000000000B2 /* VoxlueDesign */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = VoxlueDesign;
+		};
+		D1A0000000000000000000C2 /* VoxlueServices */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = VoxlueServices;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
