@@ -6,9 +6,13 @@ let package = Package(
     platforms: [.iOS(.v26), .macOS(.v26)],
     products: [
         .library(name: "VoxlueData", targets: ["VoxlueData"]),
+        .library(name: "VoxlueDesign", targets: ["VoxlueDesign"]),
     ],
     targets: [
         .target(name: "VoxlueData"),
         .testTarget(name: "VoxlueDataTests", dependencies: ["VoxlueData"]),
+        // VoxlueDesign 独立、不依赖 VoxlueData/VoxlueServices（路线图 §3.0）。
+        .target(name: "VoxlueDesign"),
+        .testTarget(name: "VoxlueDesignTests", dependencies: ["VoxlueDesign"]),
     ]
 )
