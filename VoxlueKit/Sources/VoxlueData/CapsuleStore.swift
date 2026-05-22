@@ -38,4 +38,16 @@ public final class CapsuleStore {
             FetchDescriptor<Capsule>(sortBy: [SortDescriptor(\.createdAt, order: .reverse)])
         )
     }
+
+    /// 按指定显影状态查询，按创建时间倒序。
+    /// SwiftData 谓词无法可靠转译枚举属性比较（`state` 与 `state.rawValue` 均报错），
+    /// 故取全部后在内存里过滤 —— v1 规模下无性能顾虑。
+    public func capsules(in state: CapsuleState) throws -> [Capsule] {
+        try allCapsules().filter { $0.state == state }
+    }
+
+    /// 全部「已埋下·潜伏」状态的胶囊，按创建时间倒序。
+    public func buriedCapsules() throws -> [Capsule] {
+        try capsules(in: .buried)
+    }
 }
