@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import UserNotifications
 @testable import VoxlueServices
 
 @Test func fakeNotificationGrantsPermission() async {
@@ -21,4 +22,13 @@ import Foundation
     try await service.scheduleDateLock(capsuleID: id, fireAt: .now)
     await service.cancel(capsuleID: id)
     #expect(service.scheduled[id] == nil)
+}
+
+@Test func unNotificationServiceBuildsRequestWithCapsuleID() {
+    let id = UUID()
+    let fireAt = Date(timeIntervalSinceNow: 86_400)
+    let request = UNNotificationService.makeRequest(capsuleID: id, fireAt: fireAt)
+    #expect(request.identifier == id.uuidString)
+    #expect(request.content.userInfo["capsuleID"] as? String == id.uuidString)
+    #expect(request.trigger is UNCalendarNotificationTrigger)
 }
