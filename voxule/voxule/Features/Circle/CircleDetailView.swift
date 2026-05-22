@@ -110,12 +110,6 @@ private struct CircleCapsulesList: View {
     }
 }
 
-// ShareInvitation 用作 .sheet(item:) 的标识需 Identifiable —— 协议在 VoxlueServices，
-// 这里在 App 侧补一个 conformance（URL 唯一可作 id）。
-extension ShareInvitation: @retroactive Identifiable {
-    public var id: URL { url }
-}
-
 #Preview {
     NavigationStack {
         CircleDetailView(circle: {

@@ -14,7 +14,6 @@ import VoxlueData
 /// 手写 `CKShare`（`CKModifyRecordsOperation` + `CKShare(rootRecord:)`），
 /// 协议签名与调用方均不变。
 @MainActor
-@Observable
 public final class CircleService: CircleServicing {
 
     private let modelContext: ModelContext
@@ -68,8 +67,10 @@ public final class CircleService: CircleServicing {
         } catch {
             throw CircleServiceError.cloudKitUnavailable
         }
-        // 2. 接受邀请 —— Circle 与圈内 Capsule 随之落进本机共享库，
-        //    SwiftData 镜像层会把它们带进本地存储。
+        // 2. 接受邀请 —— 记录进入本机「共享库」。
+        //    §13 真机验证点：要让受邀的 Circle 在 circles() 里可见，VoxlueModelContainer
+        //    须镜像 CloudKit 共享库（当前 make() 配的是 .private 私有库）；若原生镜像
+        //    不覆盖共享库，按 §13 退回手写 CKShare 拉取记录 —— 协议与调用方不变。
         do {
             try await container.accept(metadata)
         } catch {

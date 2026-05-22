@@ -2,8 +2,10 @@ import Foundation
 import VoxlueData
 
 /// 一份声音圈共享邀请。`url` 是 CKShare 链接，用于 iMessage / 系统分享。
-public struct ShareInvitation: Sendable {
+public struct ShareInvitation: Sendable, Identifiable {
     public let url: URL          // CKShare 链接，用于 iMessage/分享
+    /// URL 唯一，可直接作 SwiftUI `.sheet(item:)` 的标识。
+    public var id: URL { url }
 
     public init(url: URL) {
         self.url = url

@@ -26,6 +26,9 @@ final class DeepLinkRouter {
 
     /// 收到一个进站的 CKShare 链接 —— 接受它。
     func handleIncomingShare(url: URL) {
+        // 防重入：一次接受流程进行中时忽略重复进站
+        //（onOpenURL 与 onCloudKitShareAccepted 可能为同一链接各触发一次）。
+        guard acceptance != .accepting else { return }
         acceptance = .accepting
         Task {
             do {
