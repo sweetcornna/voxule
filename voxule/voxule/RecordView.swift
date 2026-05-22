@@ -9,6 +9,7 @@ struct RecordView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var permissionDenied = false
+    @State private var recordingFailed = false
     @State private var liveSamples: [Float] = []
     @State private var result: RecordingResult?
     @State private var sampleTimer: Timer?
@@ -61,6 +62,11 @@ struct RecordView: View {
             } message: {
                 Text("请到「设置」里允许 voxlue 使用麦克风。")
             }
+            .alert("没能开始冲洗", isPresented: $recordingFailed) {
+                Button("好") {}
+            } message: {
+                Text("音频会话启动失败，请稍后再试。")
+            }
             .navigationDestination(item: $result) { recording in
                 FramingView(recording: recording) { dismiss() }
             }
@@ -80,12 +86,13 @@ struct RecordView: View {
                 try recorder.start()
                 startLiveSampling()
             } catch {
-                permissionDenied = true
+                recordingFailed = true
             }
         }
     }
 
-    /// 录音时每 0.1s 取一次当前 elapsed 推一个动态采样，做实时声纹动效。
+    /// 录音时每 0.1s 推一个随机抖动采样，仅作实时声纹动效占位 ——
+    /// 真实声纹在 stop() 返回的 RecordingResult.waveform 里，由引擎按真实电平算出。
     private func startLiveSampling() {
         liveSamples = []
         sampleTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in

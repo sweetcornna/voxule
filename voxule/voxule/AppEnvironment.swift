@@ -18,10 +18,10 @@ final class AppEnvironment {
         self.player = player
     }
 
-    /// 生产装配：真实 AudioEngine。录音与回放共用同一个 AudioEngine 实例。
+    /// 生产装配：录音与回放各用独立 AudioEngine 实例 ——
+    /// 二者的计时器、进度、音频会话类别互不污染。
     static func live() -> AppEnvironment {
-        let engine = AudioEngine()
-        return AppEnvironment(recorder: engine, player: engine)
+        AppEnvironment(recorder: AudioEngine(), player: AudioEngine())
     }
 
     /// 预览/测试装配：假实现，不碰麦克风。

@@ -40,6 +40,7 @@ public final class AudioEngine: NSObject, AudioRecording, AudioPlaying {
     }
 
     public func start() throws {
+        levelTimer?.invalidate()           // 防止重复 start() 泄漏旧计时器
         try AudioSession.activateForRecording()
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString)
@@ -94,6 +95,7 @@ public final class AudioEngine: NSObject, AudioRecording, AudioPlaying {
         self.recordURL = nil
 
         let waveform = Waveform.downsample(levelSamples, buckets: 80)
+        levelSamples = []
         elapsed = 0
         return RecordingResult(audioData: data, duration: duration, waveform: waveform)
     }
@@ -125,6 +127,7 @@ public final class AudioEngine: NSObject, AudioRecording, AudioPlaying {
 
     public func play() {
         guard let player else { return }
+        progressTimer?.invalidate()        // 防止重复 play() 泄漏旧计时器
         player.play()
         isPlaying = true
         let timer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
