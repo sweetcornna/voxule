@@ -10,7 +10,7 @@ struct RootTabView: View {
                 ShelfView()
             }
             Tab("地图", systemImage: "map") {
-                PlaceholderTab(title: "地图", note: "胶囊浮现在哪 —— 计划 03 充实。")
+                NavigationStack { CapsuleMapView() }
             }
             Tab("我", systemImage: "person.crop.circle") {
                 PlaceholderTab(title: "我", note: "声音圈与设置 —— 计划 05 充实。")
