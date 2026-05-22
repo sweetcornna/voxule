@@ -5,6 +5,7 @@
 
 import SwiftUI
 import SwiftData
+import BackgroundTasks
 import VoxlueData
 import VoxlueServices
 
@@ -15,6 +16,12 @@ struct voxuleApp: App {
     @State private var dependencies: AppDependencies
     @State private var services: ServiceContainer
     @State private var shareRouter: DeepLinkRouter
+
+    /// serverless 代理地址 —— Task 8 部署后填入真实 Worker 地址。
+    static let agentProxyURL = URL(string: "https://voxlue-agent-proxy.example.workers.dev")!
+
+    /// 情绪浮现后台任务标识 —— 须与 Info.plist `BGTaskSchedulerPermittedIdentifiers` 一致。
+    static let surfacingTaskID = "com.voxlue.app.agent.surfacing"
 
     init() {
         // 优先用生产配置 —— 镜像到 CloudKit 私有库。
@@ -81,6 +88,10 @@ struct voxuleApp: App {
                 }
         }
         .modelContainer(modelContainer)
+        // 安静时段被唤醒 → 跑一轮 agent 情绪浮现闭环。
+        .backgroundTask(.appRefresh(Self.surfacingTaskID)) {
+            await Self.runSurfacingTask(modelContainer: modelContainer)
+        }
     }
 
     /// 接受流程进行中或已出结果时，弹落地页。
@@ -89,6 +100,26 @@ struct voxuleApp: App {
             get: { shareRouter.acceptance != .idle },
             set: { if !$0 { shareRouter.reset() } }
         )
+    }
+
+    /// 后台唤醒处理 —— 整段在 MainActor 上跑，避免 ModelContext 跨隔离传递。
+    @MainActor
+    private static func runSurfacingTask(modelContainer: ModelContainer) async {
+        let container = AgentContainer(
+            modelContext: modelContainer.mainContext, proxyURL: agentProxyURL
+        )
+        await container.handleBackgroundSurfacing()
+        await scheduleNextSurfacing()
+    }
+
+    /// 排下一次浮现唤醒。频率按 cadence 设置调整（轻轻地/偶尔/关）。
+    @MainActor
+    static func scheduleNextSurfacing() async {
+        let cadence = CadenceSetting.current
+        guard cadence != .off else { return }   // 「关」则不再排。
+        let request = BGAppRefreshTaskRequest(identifier: surfacingTaskID)
+        request.earliestBeginDate = Date(timeIntervalSinceNow: cadence.interval)
+        try? BGTaskScheduler.shared.submit(request)
     }
 }
 
