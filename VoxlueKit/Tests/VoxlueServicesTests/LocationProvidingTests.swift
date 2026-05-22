@@ -31,3 +31,21 @@ import Foundation
     let received = await collector.value
     #expect(received == [.entered(capsuleID: id)])
 }
+
+// CLLocationProvider 是 iOS 专有真实现，其测试同样用 #if os(iOS) 守卫。
+#if os(iOS)
+@Test func clLocationProviderConformsToProtocol() {
+    let provider: LocationProviding = CLLocationProvider()
+    #expect(type(of: provider) == CLLocationProvider.self)
+}
+
+@Test func clLocationProviderTrimsToTwentyRegions() async {
+    let provider = CLLocationProvider()
+    let regions = (0..<50).map {
+        GeofenceRegion(capsuleID: UUID(), latitude: Double($0), longitude: 0, radius: 80)
+    }
+    await provider.monitor(regions: regions)
+    // 系统监听数永不超过 20。
+    #expect(provider.monitoredRegionCount <= 20)
+}
+#endif
