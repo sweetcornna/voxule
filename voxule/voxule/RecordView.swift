@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 import VoxlueServices
 
 /// 录音视图 —— 点按开始/停止录音，实时声纹与计时。

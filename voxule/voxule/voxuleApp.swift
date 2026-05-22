@@ -10,7 +10,7 @@ import VoxlueData
 @main
 struct voxuleApp: App {
     private let modelContainer: ModelContainer
-    private let appEnvironment = AppEnvironment.live()
+    private let appEnvironment: AppEnvironment
 
     init() {
         // 优先用生产配置 —— 镜像到 CloudKit 私有库。
@@ -29,6 +29,12 @@ struct voxuleApp: App {
             } catch {
                 fatalError("无法创建本地 ModelContainer：\(error)")
             }
+        }
+        // UI 测试用 -uiTestFakeAudio 启动参数注入假音频服务，避开真麦克风与权限弹窗。
+        if ProcessInfo.processInfo.arguments.contains("-uiTestFakeAudio") {
+            appEnvironment = .preview()
+        } else {
+            appEnvironment = .live()
         }
     }
 

@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 /// App 根骨架 —— 三标签：样片墙 / 地图 / 我。
 /// 地图与我在本计划仅占位，分别由计划 03、05 充实。
