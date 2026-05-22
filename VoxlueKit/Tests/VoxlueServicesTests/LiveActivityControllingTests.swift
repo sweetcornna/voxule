@@ -28,3 +28,18 @@ import Foundation
     await controller.start(capsuleID: id, title: "雨")
     #expect(controller.activeCapsuleIDs == [id])
 }
+
+// LiveActivityController 是 iOS 专有真实现（ActivityKit），其测试同样守卫。
+#if os(iOS)
+@MainActor
+@Test func liveActivityControllerConformsToProtocol() {
+    let controller: LiveActivityControlling = LiveActivityController()
+    #expect(type(of: controller) == LiveActivityController.self)
+}
+
+@MainActor
+@Test func liveActivityControllerStartsEmpty() {
+    let controller = LiveActivityController()
+    #expect(controller.activeCapsuleIDs.isEmpty)
+}
+#endif
