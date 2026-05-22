@@ -9,43 +9,58 @@ import ActivityKit
 /// 胶囊进入 `developing` 时起一个「显影中」Live Activity（灵动岛 + 锁屏卡片），
 /// 显影动效进度经 `update` 推进，胶囊被看到 / 播放后 `end`。
 /// Live Activity 的 UI 在 Widget Extension（Task 10）里渲染，本类型只管生命周期。
+///
+/// 注意：`Activity` 是非 Sendable 的 class。不能把它存进 `@MainActor` 状态后再调用其
+/// `nonisolated async` 方法（Swift 6 区域隔离会报「sending」错）。因此本类型只记
+/// `activeCapsuleIDs`，update / end 时从 `Activity.activities` 静态列表现查句柄。
 @MainActor
 public final class LiveActivityController: LiveActivityControlling {
 
-    /// capsuleID → 活跃 Activity 句柄。
-    private var activities: [UUID: Activity<DevelopingActivityAttributes>] = [:]
+    public private(set) var activeCapsuleIDs: [UUID] = []
 
     public init() {}
 
-    public var activeCapsuleIDs: [UUID] { Array(activities.keys) }
-
     public func start(capsuleID: UUID, title: String) async {
-        guard activities[capsuleID] == nil else { return }
+        guard !activeCapsuleIDs.contains(capsuleID) else { return }
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
 
         let attributes = DevelopingActivityAttributes(capsuleID: capsuleID, title: title)
         let initialState = DevelopingActivityAttributes.ContentState(developProgress: 0)
         do {
-            let activity = try Activity.request(
+            _ = try Activity.request(
                 attributes: attributes,
                 content: .init(state: initialState, staleDate: nil)
             )
-            activities[capsuleID] = activity
+            activeCapsuleIDs.append(capsuleID)
         } catch {
             // Live Activity 起不来不影响主流程 —— 胶囊状态仍由 SwiftData 持有。
         }
     }
 
     public func update(capsuleID: UUID, progress: Double) async {
-        guard let activity = activities[capsuleID] else { return }
-        let state = DevelopingActivityAttributes.ContentState(developProgress: progress)
-        await activity.update(.init(state: state, staleDate: nil))
+        guard let activity = Self.liveActivity(for: capsuleID) else { return }
+        let content = ActivityContent(
+            state: DevelopingActivityAttributes.ContentState(developProgress: progress),
+            staleDate: nil
+        )
+        await activity.update(content)
     }
 
     public func end(capsuleID: UUID) async {
-        guard let activity = activities[capsuleID] else { return }
-        await activity.end(nil, dismissalPolicy: .immediate)
-        activities[capsuleID] = nil
+        if let activity = Self.liveActivity(for: capsuleID) {
+            await activity.end(nil, dismissalPolicy: .immediate)
+        }
+        activeCapsuleIDs.removeAll { $0 == capsuleID }
+    }
+
+    /// 从系统当前活跃的 Live Activity 里按 capsuleID 现查句柄。
+    /// `nonisolated` —— 返回值不绑 MainActor 区域，可安全跨隔离调用其 async 方法。
+    nonisolated private static func liveActivity(
+        for capsuleID: UUID
+    ) -> Activity<DevelopingActivityAttributes>? {
+        Activity<DevelopingActivityAttributes>.activities.first {
+            $0.attributes.capsuleID == capsuleID
+        }
     }
 }
 #endif
