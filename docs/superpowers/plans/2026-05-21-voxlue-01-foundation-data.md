@@ -17,7 +17,7 @@
 ## 文件结构
 
 ```
-/Users/cornna/project/voxlue/
+/Users/cornna/project/voxule/
 ├── Voxlue/                          Xcode 应用项目
 │   ├── Voxlue.xcodeproj
 │   └── Voxlue/
@@ -50,7 +50,7 @@
 **Files:**
 - Create: `Voxlue/Voxlue.xcodeproj`（Xcode 生成）
 - Create: `Voxlue/Voxlue/VoxlueApp.swift`（Xcode 生成）
-- Create: `/Users/cornna/project/voxlue/.gitignore`
+- Create: `/Users/cornna/project/voxule/.gitignore`
 
 - [ ] **Step 1: 用 Xcode 创建项目**
 
@@ -66,7 +66,7 @@
 | Testing System | Swift Testing |
 | Storage | None |
 
-保存位置选 `/Users/cornna/project/voxlue`。完成后项目位于 `/Users/cornna/project/voxlue/Voxlue/Voxlue.xcodeproj`。
+保存位置选 `/Users/cornna/project/voxule`。完成后项目位于 `/Users/cornna/project/voxule/Voxlue/Voxlue.xcodeproj`。
 
 - [ ] **Step 2: 设置部署目标为 iOS 26.0**
 
@@ -74,7 +74,7 @@
 
 - [ ] **Step 3: 创建 .gitignore 并初始化 git**
 
-创建 `/Users/cornna/project/voxlue/.gitignore`，内容：
+创建 `/Users/cornna/project/voxule/.gitignore`，内容：
 
 ```gitignore
 # macOS
@@ -97,7 +97,7 @@ build/
 然后初始化仓库并首次提交：
 
 ```bash
-cd /Users/cornna/project/voxlue
+cd /Users/cornna/project/voxule
 git init
 git add .gitignore Voxlue docs
 git commit -m "chore: 初始化 Voxlue iOS 项目骨架"
@@ -105,7 +105,7 @@ git commit -m "chore: 初始化 Voxlue iOS 项目骨架"
 
 - [ ] **Step 4: 验证项目可构建**
 
-Run: `cd /Users/cornna/project/voxlue/Voxlue && xcodebuild -scheme Voxlue -destination 'platform=iOS Simulator,name=iPhone 16' build`
+Run: `cd /Users/cornna/project/voxule/Voxlue && xcodebuild -scheme Voxlue -destination 'platform=iOS Simulator,name=iPhone 16' build`
 Expected: 末行输出 `** BUILD SUCCEEDED **`
 
 ---
@@ -160,20 +160,20 @@ import Testing
 
 - [ ] **Step 3: 验证包可测试**
 
-Run: `cd /Users/cornna/project/voxlue/VoxlueKit && swift test`
+Run: `cd /Users/cornna/project/voxule/VoxlueKit && swift test`
 Expected: 输出包含 `Test run with 1 test passed`
 
 - [ ] **Step 4: 把 VoxlueKit 加为本地包依赖**
 
-在 Xcode：File ▸ Add Package Dependencies ▸ 左下角 Add Local ▸ 选 `/Users/cornna/project/voxlue/VoxlueKit` ▸ Add Package。然后 TARGETS ▸ Voxlue ▸ General ▸ Frameworks, Libraries, and Embedded Content ▸ `+` ▸ 添加 `VoxlueData`。
+在 Xcode：File ▸ Add Package Dependencies ▸ 左下角 Add Local ▸ 选 `/Users/cornna/project/voxule/VoxlueKit` ▸ Add Package。然后 TARGETS ▸ Voxlue ▸ General ▸ Frameworks, Libraries, and Embedded Content ▸ `+` ▸ 添加 `VoxlueData`。
 
 - [ ] **Step 5: 验证 App 仍可构建并提交**
 
-Run: `cd /Users/cornna/project/voxlue/Voxlue && xcodebuild -scheme Voxlue -destination 'platform=iOS Simulator,name=iPhone 16' build`
+Run: `cd /Users/cornna/project/voxule/Voxlue && xcodebuild -scheme Voxlue -destination 'platform=iOS Simulator,name=iPhone 16' build`
 Expected: `** BUILD SUCCEEDED **`
 
 ```bash
-cd /Users/cornna/project/voxlue
+cd /Users/cornna/project/voxule
 git add VoxlueKit Voxlue
 git commit -m "chore: 新增 VoxlueKit 本地包与 VoxlueData 模块"
 ```
@@ -216,7 +216,7 @@ import Foundation
 
 - [ ] **Step 2: 运行测试，确认失败**
 
-Run: `cd /Users/cornna/project/voxlue/VoxlueKit && swift test`
+Run: `cd /Users/cornna/project/voxule/VoxlueKit && swift test`
 Expected: 编译失败，提示找不到 `Recipient` / `CapsuleState` / `CircleRole`
 
 - [ ] **Step 3: 实现枚举**
@@ -250,13 +250,13 @@ public enum CircleRole: String, Codable, CaseIterable, Sendable {
 
 - [ ] **Step 4: 运行测试，确认通过**
 
-Run: `cd /Users/cornna/project/voxlue/VoxlueKit && swift test`
+Run: `cd /Users/cornna/project/voxule/VoxlueKit && swift test`
 Expected: `Test run with 5 tests passed`（1 冒烟 + 4 枚举）
 
 - [ ] **Step 5: 提交**
 
 ```bash
-cd /Users/cornna/project/voxlue
+cd /Users/cornna/project/voxule
 git add VoxlueKit/Sources/VoxlueData/Enums.swift VoxlueKit/Tests/VoxlueDataTests/EnumsTests.swift
 git commit -m "feat(data): 新增 Recipient/CapsuleState/CircleRole 枚举"
 ```
@@ -307,7 +307,7 @@ import Foundation
 
 - [ ] **Step 2: 运行测试，确认失败**
 
-Run: `cd /Users/cornna/project/voxlue/VoxlueKit && swift test`
+Run: `cd /Users/cornna/project/voxule/VoxlueKit && swift test`
 Expected: 编译失败，提示找不到 `Lock`
 
 - [ ] **Step 3: 实现 Lock**
@@ -344,13 +344,13 @@ public enum Lock: Codable, Hashable, Sendable {
 
 - [ ] **Step 4: 运行测试，确认通过**
 
-Run: `cd /Users/cornna/project/voxlue/VoxlueKit && swift test`
+Run: `cd /Users/cornna/project/voxule/VoxlueKit && swift test`
 Expected: `Test run with 9 tests passed`（累计：1 + 4 + 4 锁）
 
 - [ ] **Step 5: 提交**
 
 ```bash
-cd /Users/cornna/project/voxlue
+cd /Users/cornna/project/voxule
 git add VoxlueKit/Sources/VoxlueData/Lock.swift VoxlueKit/Tests/VoxlueDataTests/LockTests.swift
 git commit -m "feat(data): 新增 Lock 枚举（地点/时间/情绪三把锁）"
 ```
@@ -405,7 +405,7 @@ import SwiftData
 
 - [ ] **Step 2: 运行测试，确认失败**
 
-Run: `cd /Users/cornna/project/voxlue/VoxlueKit && swift test`
+Run: `cd /Users/cornna/project/voxule/VoxlueKit && swift test`
 Expected: 编译失败，提示找不到 `Capsule`
 
 - [ ] **Step 3: 实现 Capsule**
@@ -496,13 +496,13 @@ public final class Capsule {
 
 - [ ] **Step 4: 运行测试，确认通过**
 
-Run: `cd /Users/cornna/project/voxlue/VoxlueKit && swift test`
+Run: `cd /Users/cornna/project/voxule/VoxlueKit && swift test`
 Expected: `Test run with 11 tests passed`（累计：9 + 2 胶囊）
 
 - [ ] **Step 5: 提交**
 
 ```bash
-cd /Users/cornna/project/voxlue
+cd /Users/cornna/project/voxule
 git add VoxlueKit/Sources/VoxlueData/Capsule.swift VoxlueKit/Tests/VoxlueDataTests/CapsuleTests.swift
 git commit -m "feat(data): 新增 Capsule @Model"
 ```
@@ -548,7 +548,7 @@ import SwiftData
 
 - [ ] **Step 2: 运行测试，确认失败**
 
-Run: `cd /Users/cornna/project/voxlue/VoxlueKit && swift test`
+Run: `cd /Users/cornna/project/voxule/VoxlueKit && swift test`
 Expected: 编译失败，提示找不到 `Circle` / `CircleMember`
 
 - [ ] **Step 3: 实现 Circle 与 CircleMember**
@@ -611,13 +611,13 @@ public final class CircleMember {
 
 - [ ] **Step 4: 运行测试，确认通过**
 
-Run: `cd /Users/cornna/project/voxlue/VoxlueKit && swift test`
+Run: `cd /Users/cornna/project/voxule/VoxlueKit && swift test`
 Expected: `Test run with 12 tests passed`（累计：11 + 1 圈）
 
 - [ ] **Step 5: 提交**
 
 ```bash
-cd /Users/cornna/project/voxlue
+cd /Users/cornna/project/voxule
 git add VoxlueKit/Sources/VoxlueData/Circle.swift VoxlueKit/Tests/VoxlueDataTests/CircleTests.swift
 git commit -m "feat(data): 新增 Circle 与 CircleMember @Model"
 ```
@@ -658,7 +658,7 @@ import SwiftData
 
 - [ ] **Step 2: 运行测试，确认失败**
 
-Run: `cd /Users/cornna/project/voxlue/VoxlueKit && swift test`
+Run: `cd /Users/cornna/project/voxule/VoxlueKit && swift test`
 Expected: 编译失败，提示找不到 `VoxlueModelContainer`
 
 - [ ] **Step 3: 实现 VoxlueModelContainer**
@@ -707,13 +707,13 @@ public enum VoxlueModelContainer {
 
 - [ ] **Step 4: 运行测试，确认通过**
 
-Run: `cd /Users/cornna/project/voxlue/VoxlueKit && swift test`
+Run: `cd /Users/cornna/project/voxule/VoxlueKit && swift test`
 Expected: `Test run with 13 tests passed`（累计：12 + 1 容器）
 
 - [ ] **Step 5: 提交**
 
 ```bash
-cd /Users/cornna/project/voxlue
+cd /Users/cornna/project/voxule
 git add VoxlueKit/Sources/VoxlueData/VoxlueModelContainer.swift VoxlueKit/Tests/VoxlueDataTests/ModelContainerTests.swift
 git commit -m "feat(data): 新增 VoxlueModelContainer 容器工厂"
 ```
@@ -785,7 +785,7 @@ import SwiftData
 
 - [ ] **Step 2: 运行测试，确认失败**
 
-Run: `cd /Users/cornna/project/voxlue/VoxlueKit && swift test`
+Run: `cd /Users/cornna/project/voxule/VoxlueKit && swift test`
 Expected: 编译失败，提示找不到 `CapsuleStore`
 
 - [ ] **Step 3: 实现 CapsuleStore**
@@ -838,13 +838,13 @@ public final class CapsuleStore {
 
 - [ ] **Step 4: 运行全部测试，确认通过**
 
-Run: `cd /Users/cornna/project/voxlue/VoxlueKit && swift test`
+Run: `cd /Users/cornna/project/voxule/VoxlueKit && swift test`
 Expected: `Test run with 17 tests passed`（1 冒烟 + 4 枚举 + 4 锁 + 2 胶囊 + 1 圈 + 1 容器 + 4 store）
 
 - [ ] **Step 5: 提交**
 
 ```bash
-cd /Users/cornna/project/voxlue
+cd /Users/cornna/project/voxule
 git add VoxlueKit/Sources/VoxlueData/CapsuleStore.swift VoxlueKit/Tests/VoxlueDataTests/CapsuleStoreTests.swift
 git commit -m "feat(data): 新增 CapsuleStore 写操作封装"
 ```
@@ -933,7 +933,7 @@ struct VoxlueApp: App {
 
 - [ ] **Step 4: 构建并在模拟器运行**
 
-Run: `cd /Users/cornna/project/voxlue/Voxlue && xcodebuild -scheme Voxlue -destination 'platform=iOS Simulator,name=iPhone 16' build`
+Run: `cd /Users/cornna/project/voxule/Voxlue && xcodebuild -scheme Voxlue -destination 'platform=iOS Simulator,name=iPhone 16' build`
 Expected: `** BUILD SUCCEEDED **`
 
 然后在 Xcode 用 iPhone 16 模拟器运行（⌘R）。点「加一枚样本」两次，确认列表出现两行、标题变为「胶囊：2」；关闭重开 App 后两行仍在（验证持久化）。
@@ -941,7 +941,7 @@ Expected: `** BUILD SUCCEEDED **`
 - [ ] **Step 5: 提交**
 
 ```bash
-cd /Users/cornna/project/voxlue
+cd /Users/cornna/project/voxule
 git add Voxlue
 git commit -m "feat: App 接入 VoxlueData 数据层并端到端验证"
 ```
