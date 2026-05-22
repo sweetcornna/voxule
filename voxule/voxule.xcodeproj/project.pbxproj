@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		D1A0000000000000000000A3 /* VoxlueData in Frameworks */ = {isa = PBXBuildFile; productRef = D1A0000000000000000000A2 /* VoxlueData */; };
+		D1A0000000000000000000B3 /* VoxlueDesign in Frameworks */ = {isa = PBXBuildFile; productRef = D1A0000000000000000000B2 /* VoxlueDesign */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -57,6 +58,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D1A0000000000000000000A3 /* VoxlueData in Frameworks */,
+				D1A0000000000000000000B3 /* VoxlueDesign in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -118,6 +120,7 @@
 			name = voxule;
 			packageProductDependencies = (
 				D1A0000000000000000000A2 /* VoxlueData */,
+				D1A0000000000000000000B2 /* VoxlueDesign */,
 			);
 			productName = voxule;
 			productReference = D12098C42FC0104C001D1733 /* voxule.app */;
@@ -630,6 +633,10 @@
 		D1A0000000000000000000A2 /* VoxlueData */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = VoxlueData;
+		};
+		D1A0000000000000000000B2 /* VoxlueDesign */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = VoxlueDesign;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
