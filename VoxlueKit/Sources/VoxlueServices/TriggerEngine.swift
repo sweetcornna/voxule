@@ -110,12 +110,9 @@ public final class TriggerEngine: TriggerEngineProtocol {
                 ))
             }
         }
-        // GeofenceScheduler 需要用户位置；无定位时退化为不排序（仍裁 20 个上限）。
-        let trimmed = GeofenceScheduler.nearest(
-            to: (latitude: 0, longitude: 0), from: regions
-        )
-        await location.monitor(regions: regions.count <= GeofenceScheduler.systemLimit
-            ? regions : trimmed)
+        // 把全量地点锁围栏交给 wrapper —— 「最近 20 个」裁剪由 LocationProviding
+        // 真实现在能拿到用户实时坐标时跑 GeofenceScheduler 完成（见 CLLocationProvider）。
+        await location.monitor(regions: regions)
     }
 
     private func capsule(id: UUID) -> VoxlueData.Capsule? {

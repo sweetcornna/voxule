@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import UserNotifications
 import VoxlueData
 import VoxlueServices
 
@@ -13,6 +14,8 @@ final class AppDependencies {
     let engine: TriggerEngine
     let backgroundTasks: BackgroundTaskCoordinator
     let router: CapsuleRouter
+    /// 通知中心 delegate —— 须强引用保活（`UNUserNotificationCenter.delegate` 为 weak）。
+    let notificationDelegate: NotificationDelegate
 
     init(modelContainer: ModelContainer) {
         let store = CapsuleStore(context: modelContainer.mainContext)
@@ -22,10 +25,15 @@ final class AppDependencies {
             notifications: UNNotificationService(),
             liveActivity: LiveActivityController()
         )
+        let router = CapsuleRouter()
+        let notificationDelegate = NotificationDelegate(router: router)
         self.store = store
         self.engine = engine
         self.backgroundTasks = BackgroundTaskCoordinator(engine: engine)
-        self.router = CapsuleRouter()
+        self.router = router
+        self.notificationDelegate = notificationDelegate
+        // 接住时间锁通知的点击 —— delegate 须在 App 启动完成前设好。
+        UNUserNotificationCenter.current().delegate = notificationDelegate
     }
 
     /// 须在 App 启动完成前调用（`voxuleApp.init` 里）——
