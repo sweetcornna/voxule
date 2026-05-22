@@ -411,7 +411,8 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Info.plist;
-				INFOPLIST_KEY_BGTaskSchedulerPermittedIdentifiers = "com.voxlue.app.reconcile";
+				INFOPLIST_KEY_BGTaskSchedulerPermittedIdentifiers = "com.voxlue.app.reconcile com.voxlue.app.agent.surfacing";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "voxlue 读取你的心情、心率与睡眠记录，只为在合适的安静时刻陪你重听一段你埋下的声音。这些数据全程留在你的设备上，永不上传。";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "voxlue 用你的位置，在你回到埋下声音的地方时轻轻提醒你。";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "voxlue 用你的位置，在你回到埋下声音的地方时轻轻提醒你。";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "voxlue 需要麦克风，为你冲洗一段声音。";
@@ -461,7 +462,8 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Info.plist;
-				INFOPLIST_KEY_BGTaskSchedulerPermittedIdentifiers = "com.voxlue.app.reconcile";
+				INFOPLIST_KEY_BGTaskSchedulerPermittedIdentifiers = "com.voxlue.app.reconcile com.voxlue.app.agent.surfacing";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "voxlue 读取你的心情、心率与睡眠记录，只为在合适的安静时刻陪你重听一段你埋下的声音。这些数据全程留在你的设备上，永不上传。";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "voxlue 用你的位置，在你回到埋下声音的地方时轻轻提醒你。";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "voxlue 用你的位置，在你回到埋下声音的地方时轻轻提醒你。";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "voxlue 需要麦克风，为你冲洗一段声音。";
