@@ -9,6 +9,15 @@ public struct FilmPerforations: View {
         case top, bottom
     }
 
+    // MARK: 公开尺寸 token —— 让外部组件（朱章 / 标题）能算让出多少空间。
+
+    /// 单个片孔的高度。
+    public static let rowHeight: CGFloat = 5
+    /// 片孔距影像区上/下边缘的内边距。
+    public static let edgeInset: CGFloat = 6
+    /// 朱章 / 文字等内容应让出的最小顶 / 底距，避开片孔区。
+    public static let safeContentInset: CGFloat = rowHeight + edgeInset + 4
+
     private let edge: Edge
     /// 颜色：默认 paperHighlight 贴亮底，给到 darkroomGray 也能盖在反相黑底上。
     private let holeColor: Color
@@ -29,18 +38,18 @@ public struct FilmPerforations: View {
                         .overlay(
                             RoundedRectangle(cornerRadius: 1.5, style: .continuous)
                                 .fill(holeColor)
-                                .frame(width: spacing * 0.55, height: 5)
+                                .frame(width: spacing * 0.55, height: Self.rowHeight)
                         )
                 }
             }
-            .frame(height: 5)
+            .frame(height: Self.rowHeight)
             .frame(
                 maxWidth: .infinity,
                 maxHeight: .infinity,
                 alignment: edge == .top ? .top : .bottom
             )
-            .padding(.top, edge == .top ? 6 : 0)
-            .padding(.bottom, edge == .bottom ? 6 : 0)
+            .padding(.top, edge == .top ? Self.edgeInset : 0)
+            .padding(.bottom, edge == .bottom ? Self.edgeInset : 0)
         }
         .allowsHitTesting(false)
     }

@@ -21,10 +21,16 @@ public struct SealStamp: View {
     }
 
     private let kind: Kind
+    private let delay: Double
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var stamped = false
 
-    public init(_ kind: Kind) {
+    /// - Parameters:
+    ///   - delay: 入场动效延迟。多枚朱章同时入场时（如样片墙刷到一屏）传 staggered
+    ///     值（建议 0~0.24 之间）形成级联，不要全部同时盖下来。
+    public init(_ kind: Kind, delay: Double = 0) {
         self.kind = kind
+        self.delay = delay
     }
 
     public var body: some View {
@@ -43,13 +49,27 @@ public struct SealStamp: View {
             .rotationEffect(.degrees(stamped ? -8 : 6))
             .opacity(stamped ? 0.88 : 0)
             .voxlueShadow(.stamp)
-            .onAppear {
-                // spring 收束 —— 0.4s 落定，比霜化（1.1s）快，给到「盖一下」的果断。
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.65)) {
-                    stamped = true
-                }
-            }
+            .onAppear(perform: stampIn)
     }
+
+    private func stampIn() {
+        // Preview 与 UI 测试快照不应捕到中间帧 —— 直接落定。
+        // 用户开了「减弱动效」也跳过 spring。
+        if Self.skipsAnimation || reduceMotion {
+            stamped = true
+            return
+        }
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.65).delay(delay)) {
+            stamped = true
+        }
+    }
+
+    /// SwiftUI Preview 与 UI 测试环境标志 —— 让朱章入场跳过 spring 直接落定。
+    private static let skipsAnimation: Bool = {
+        let env = ProcessInfo.processInfo.environment
+        return env["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
+            || env["XCTestSessionIdentifier"] != nil
+    }()
 }
 
 #Preview {
