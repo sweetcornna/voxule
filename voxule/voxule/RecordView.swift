@@ -68,7 +68,8 @@ struct RecordView: View {
                         recorder.cancel()
                         dismiss()
                     }
-                    .foregroundStyle(VoxlueColor.paperHighlight)
+                    // 与录音按钮同朱红 —— 让取消/录音两键在暗房里彼此呼应。
+                    .foregroundStyle(VoxlueColor.vermillion)
                 }
             }
             .alert("没有麦克风权限", isPresented: $permissionDenied) {

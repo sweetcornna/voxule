@@ -80,8 +80,11 @@ struct SurfacedCapsuleView: View {
             }
         }
         .onAppear {
-            // 入场霜化开 —— 一拍后翻 developed 触发动画。
-            withAnimation(DevelopAnimation.curve) { developed = true }
+            // 入场霜化开：FrostReveal 内部自带 `.animation(_:value:)`，外层不要再 withAnimation
+            // 包，否则两条动画路径会互相覆盖。同步 onAppear 改 @State 可能与首帧 commit 合并，
+            // 导致直接落在 developed=true 状态、动画被吞 —— DispatchQueue.main.async 把翻转推迟
+            // 到下一拍，让第一帧渲染霜化态。
+            DispatchQueue.main.async { developed = true }
         }
         .onDisappear { onLeave() }
         .alert("没能放出这段声音", isPresented: $playFailed) {

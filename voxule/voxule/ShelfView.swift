@@ -68,6 +68,9 @@ struct ShelfView: View {
                 NavigationLink(value: capsule.id) {
                     CapsuleRow(capsule: capsule)
                 }
+                // 不加 .plain 会在每张 PhotoCard 右侧露一道系统灰 disclosure chevron，
+                // 与暗房纸感冲突。.plain 移除 chevron 与默认高亮，行仍可点。
+                .buttonStyle(.plain)
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
                 .listRowInsets(EdgeInsets(
