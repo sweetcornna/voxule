@@ -1,38 +1,49 @@
 import SwiftUI
 import VoxlueData
+import VoxlueDesign
 
-/// 样片墙的一行 —— 一枚胶囊的缩略：标题 + 状态 + 锁。
+/// 样片墙的一张相片 —— PhotoCard 包住声纹缩略，右上角盖朱章标状态。
 struct CapsuleRow: View {
     let capsule: VoxlueData.Capsule
 
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: lockIcon)
-                .font(.title3)
-                .foregroundStyle(.secondary)
-                .frame(width: 28)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(capsule.title.isEmpty ? "（无题）" : capsule.title)
-                    .font(.headline)
-                HStack(spacing: 6) {
-                    Text(stateLabel)
-                    Text("·")
-                    Text(lockLabel)
-                }
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            }
-            Spacer()
+        PhotoCard(title: displayTitle, meta: metaLine) {
+            // 图像区 —— 声纹波形，黑底白线。
+            WaveformView(
+                samples: capsule.waveform.isEmpty
+                    ? [Float](repeating: 0.08, count: 64)
+                    : capsule.waveform,
+                tint: VoxlueColor.paperHighlight
+            )
+            .padding(.horizontal, VoxlueSpacing.lg)
         }
-        .padding(.vertical, 4)
+        .overlay(alignment: .topTrailing) {
+            // 朱章盖在相片右上 —— 让状态一眼可读。
+            SealStamp(sealKind)
+                .padding(.top, VoxlueSpacing.sm)
+                .padding(.trailing, VoxlueSpacing.sm)
+        }
     }
 
-    private var lockIcon: String {
-        switch capsule.lock.kind {
-        case .place: "mappin.and.ellipse"
-        case .date: "calendar"
-        case .mood: "heart"
+    private var displayTitle: String {
+        capsule.title.isEmpty ? "（无题）" : capsule.title
+    }
+
+    /// 片基小字 —— 锁类型 · 时长。
+    private var metaLine: String {
+        var parts: [String] = [lockLabel]
+        if capsule.duration > 0 {
+            parts.append(durationString)
         }
+        if let place = capsule.placeName, !place.isEmpty {
+            parts.append(place)
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    private var durationString: String {
+        let total = Int(capsule.duration)
+        return String(format: "%d:%02d", total / 60, total % 60)
     }
 
     private var lockLabel: String {
@@ -43,12 +54,12 @@ struct CapsuleRow: View {
         }
     }
 
-    private var stateLabel: String {
+    private var sealKind: SealStamp.Kind {
         switch capsule.state {
-        case .buried: "已埋下"
-        case .developing: "显影中"
-        case .developed: "等你听"
-        case .opened: "已开启"
+        case .buried: .buried
+        case .developing: .developing
+        case .developed: .developed
+        case .opened: .opened
         }
     }
 }

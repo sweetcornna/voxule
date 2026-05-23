@@ -1,9 +1,11 @@
 import SwiftUI
 import SwiftData
 import VoxlueData
+import VoxlueDesign
 import VoxlueServices
 
-/// 胶囊详情 + 回放。
+/// 胶囊详情 + 回放。改用相片卡 + 纸基容器：顶部 PhotoCard 露图像，
+/// 下面纸卡放回放控件与元数据。
 struct CapsuleDetailView: View {
     let capsule: VoxlueData.Capsule
 
@@ -16,27 +18,20 @@ struct CapsuleDetailView: View {
     private var player: any AudioPlaying { env.player }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                header
+        ZStack {
+            VoxlueColor.paper.ignoresSafeArea()
 
-                WaveformView(
-                    samples: capsule.waveform.isEmpty
-                        ? [Float](repeating: 0.1, count: 80)
-                        : capsule.waveform,
-                    progress: player.progress,
-                    tint: .accentColor
-                )
-                .frame(height: 96)
-
-                playbackControls
-
-                metadata
+            ScrollView {
+                VStack(alignment: .leading, spacing: VoxlueSpacing.xl) {
+                    photoHero
+                    playbackControls
+                    metadata
+                }
+                .padding(VoxlueSpacing.lg)
             }
-            .padding()
         }
         .navigationTitle(capsule.title.isEmpty ? "（无题）" : capsule.title)
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
         .onAppear(perform: prepare)
         .onDisappear { player.pause() }
         .alert("没能放出这段声音", isPresented: $loadFailed) {
@@ -46,56 +41,85 @@ struct CapsuleDetailView: View {
         }
     }
 
-    private var header: some View {
-        HStack(spacing: 8) {
-            Image(systemName: lockIcon)
-            Text(lockLabel)
-            Text("·")
-            Text(stateLabel)
+    /// 顶部相片 —— 用 PhotoCard 包声纹波形，朱章盖在右上。
+    private var photoHero: some View {
+        PhotoCard(title: displayTitle, meta: headerMeta) {
+            WaveformView(
+                samples: capsule.waveform.isEmpty
+                    ? [Float](repeating: 0.1, count: 80)
+                    : capsule.waveform,
+                progress: player.progress,
+                tint: VoxlueColor.paperHighlight
+            )
+            .padding(.horizontal, VoxlueSpacing.lg)
         }
-        .font(.subheadline)
-        .foregroundStyle(.secondary)
+        .overlay(alignment: .topTrailing) {
+            SealStamp(sealKind)
+                .padding(.top, VoxlueSpacing.sm)
+                .padding(.trailing, VoxlueSpacing.sm)
+        }
     }
 
     private var playbackControls: some View {
-        VStack(spacing: 12) {
-            Slider(
-                value: Binding(
-                    get: { player.progress },
-                    set: { player.seek(toProgress: $0) }
-                ),
-                in: 0...1
-            )
-            HStack {
-                Text(progressTimeString)
-                Spacer()
-                Text(durationString)
-            }
-            .font(.caption.monospaced())
-            .foregroundStyle(.secondary)
+        PaperCard {
+            VStack(spacing: VoxlueSpacing.md) {
+                Slider(
+                    value: Binding(
+                        get: { player.progress },
+                        set: { player.seek(toProgress: $0) }
+                    ),
+                    in: 0...1
+                )
+                .tint(VoxlueColor.vermillion)
+                HStack {
+                    Text(progressTimeString)
+                    Spacer()
+                    Text(durationString)
+                }
+                .font(VoxlueTypography.meta)
+                .foregroundStyle(VoxlueColor.graphite)
 
-            Button {
-                togglePlayback()
-            } label: {
-                Image(systemName: player.isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                    .font(.system(size: 64))
+                Button {
+                    togglePlayback()
+                } label: {
+                    Image(systemName: player.isPlaying ? "pause.circle.fill" : "play.circle.fill")
+                        .font(.system(size: 64))
+                        .foregroundStyle(VoxlueColor.vermillion)
+                }
+                .disabled(!loaded)
+                .accessibilityLabel(player.isPlaying ? "暂停" : "播放")
             }
-            .disabled(!loaded)
-            .accessibilityLabel(player.isPlaying ? "暂停" : "播放")
         }
     }
 
     private var metadata: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if let place = capsule.placeName {
-                LabeledContent("录于", value: place)
+        PaperCard {
+            VStack(alignment: .leading, spacing: VoxlueSpacing.sm) {
+                if let place = capsule.placeName {
+                    metadataRow(label: "录于", value: place)
+                }
+                if let note = capsule.note, !note.isEmpty {
+                    metadataRow(label: "批注", value: note)
+                }
+                metadataRow(
+                    label: "埋于",
+                    value: capsule.createdAt.formatted(date: .abbreviated, time: .shortened)
+                )
             }
-            if let note = capsule.note, !note.isEmpty {
-                LabeledContent("批注", value: note)
-            }
-            LabeledContent("埋于", value: capsule.createdAt.formatted(date: .abbreviated, time: .shortened))
         }
-        .font(.callout)
+    }
+
+    private func metadataRow(label: String, value: String) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(label)
+                .font(VoxlueTypography.caption)
+                .foregroundStyle(VoxlueColor.graphite)
+                .frame(width: 48, alignment: .leading)
+            Text(value)
+                .font(VoxlueTypography.serifBody)
+                .foregroundStyle(VoxlueColor.ink)
+            Spacer()
+        }
     }
 
     private func prepare() {
@@ -127,6 +151,20 @@ struct CapsuleDetailView: View {
         try? CapsuleStore(context: context).updateState(capsule, to: .opened)
     }
 
+    private var displayTitle: String {
+        capsule.title.isEmpty ? "（无题）" : capsule.title
+    }
+
+    /// 片基小字 —— 锁 · 时长 · 状态。
+    private var headerMeta: String {
+        var parts: [String] = [lockLabel]
+        if capsule.duration > 0 {
+            parts.append(durationString)
+        }
+        parts.append(stateLabel)
+        return parts.joined(separator: " · ")
+    }
+
     private var progressTimeString: String {
         timeString(player.progress * capsule.duration)
     }
@@ -136,14 +174,6 @@ struct CapsuleDetailView: View {
     private func timeString(_ seconds: TimeInterval) -> String {
         let total = Int(seconds)
         return String(format: "%02d:%02d", total / 60, total % 60)
-    }
-
-    private var lockIcon: String {
-        switch capsule.lock.kind {
-        case .place: "mappin.and.ellipse"
-        case .date: "calendar"
-        case .mood: "heart"
-        }
     }
 
     private var lockLabel: String {
@@ -160,6 +190,15 @@ struct CapsuleDetailView: View {
         case .developing: "显影中"
         case .developed: "等你听"
         case .opened: "已开启"
+        }
+    }
+
+    private var sealKind: SealStamp.Kind {
+        switch capsule.state {
+        case .buried: .buried
+        case .developing: .developing
+        case .developed: .developed
+        case .opened: .opened
         }
     }
 }

@@ -7,6 +7,7 @@ import SwiftUI
 import SwiftData
 import BackgroundTasks
 import VoxlueData
+import VoxlueDesign
 import VoxlueServices
 
 @main
@@ -29,6 +30,10 @@ struct voxuleApp: App {
     @MainActor static private(set) var isCloudKitMirrored = false
 
     init() {
+        // 自定义字体（Crimson Pro · 思源宋 · Space Mono · Caveat）须在 App 启动时注册一次，
+        // 否则 VoxlueTypography 取出来的 Font.custom 会回退到系统字体。
+        VoxlueFontRegistrar.registerAll()
+
         // 优先用生产配置 —— 镜像到 CloudKit 私有库。
         // 若 CloudKit 不可用（未登录 iCloud、缺少能力配置等），降级为纯本地存储。
         let container: ModelContainer
@@ -73,6 +78,7 @@ struct voxuleApp: App {
     var body: some Scene {
         WindowGroup {
             RootTabView()
+                .tint(VoxlueColor.vermillion)
                 .environment(\.appEnvironment, appEnvironment)
                 .environment(dependencies)
                 .environment(services)
