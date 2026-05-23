@@ -45,6 +45,7 @@ struct ShelfView: View {
     }
 
     private var emptyState: some View {
+        // 必须撑满父 ZStack 才不会被 .bottomTrailing 对齐拽到角落里去。
         VStack(spacing: VoxlueSpacing.md) {
             Image(systemName: "rectangle.stack")
                 .font(.system(size: 44))
@@ -56,6 +57,7 @@ struct ShelfView: View {
                 .font(VoxlueTypography.serifBody)
                 .foregroundStyle(VoxlueColor.graphite)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var photoStack: some View {
