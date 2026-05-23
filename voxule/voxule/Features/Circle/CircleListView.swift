@@ -46,6 +46,13 @@ struct CircleListView: View {
                 }
             }
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    NavigationLink {
+                        SettingsView()
+                    } label: {
+                        Image(systemName: "gearshape")
+                    }
+                }
                 ToolbarItem(placement: .primaryAction) {
                     Button { showCreateSheet = true } label: {
                         Image(systemName: "plus")
@@ -93,9 +100,11 @@ private struct CircleRow: View {
 #Preview("有圈") {
     CircleListView()
         .environment(ServiceContainer.preview())
+        .environment(AgentContainer())
 }
 
 #Preview("空") {
     CircleListView()
         .environment(ServiceContainer.previewEmpty())
+        .environment(AgentContainer())
 }

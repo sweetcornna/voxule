@@ -1,0 +1,34 @@
+import SwiftUI
+
+/// 「我」标签下的设置入口 —— 把陪伴 agent 的两个开关聚到一处：
+/// 浮现频率（cadence）与陪伴授权（HealthKit）。
+struct SettingsView: View {
+    @Environment(AgentContainer.self) private var agent
+
+    var body: some View {
+        Form {
+            Section {
+                NavigationLink {
+                    CadenceSettingsView()
+                } label: {
+                    Label("浮现频率", systemImage: "wand.and.stars")
+                }
+                NavigationLink {
+                    HealthAuthorizationView(health: agent.health)
+                } label: {
+                    Label("陪伴授权", systemImage: "heart.text.square")
+                }
+            } header: {
+                Text("陪伴")
+            } footer: {
+                Text("两项都是陪伴层面的设置 —— 与你的胶囊安全无关，随时可调。")
+            }
+        }
+        .navigationTitle("设置")
+    }
+}
+
+#Preview {
+    NavigationStack { SettingsView() }
+        .environment(AgentContainer())
+}

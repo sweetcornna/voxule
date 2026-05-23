@@ -40,6 +40,8 @@ struct RootTabView: View {
 }
 
 /// 深链落地页 —— 按 capsuleID 现查胶囊，命中则展示详情。
+/// 处于 developing（agent 刚浮现）的胶囊走「浮现卡」陪伴语气落地；
+/// 其他状态（developed/opened/buried）走常规详情。
 struct RoutedCapsuleDetailView: View {
     let capsuleID: UUID
     @Query(sort: \VoxlueData.Capsule.createdAt, order: .reverse)
@@ -47,7 +49,11 @@ struct RoutedCapsuleDetailView: View {
 
     var body: some View {
         if let capsule = capsules.first(where: { $0.id == capsuleID }) {
-            CapsuleDetailView(capsule: capsule)
+            if capsule.state == .developing {
+                SurfacedCapsuleView(capsuleID: capsule.id)
+            } else {
+                CapsuleDetailView(capsule: capsule)
+            }
         } else {
             ContentUnavailableView(
                 "找不到这枚胶囊",
