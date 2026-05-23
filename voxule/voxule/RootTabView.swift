@@ -40,8 +40,10 @@ struct RootTabView: View {
 }
 
 /// 深链落地页 —— 按 capsuleID 现查胶囊，命中则展示详情。
-/// 处于 developing（agent 刚浮现）的胶囊走「浮现卡」陪伴语气落地；
-/// 其他状态（developed/opened/buried）走常规详情。
+/// 处于 developing 的胶囊走「浮现卡」陪伴语气落地；其他状态（developed/opened/buried）走常规详情。
+/// developing 来源不止 agent：TriggerEngine.surface() 三条路径都会把胶囊推到 developing —
+/// (1) agent 闭环主动浮现；(2) 地点锁围栏命中；(3) 时间锁通知点击。
+/// v1 选择不区分来源，让「一段你埋下的声音，浮上来了」这句陪伴语气覆盖三者。
 struct RoutedCapsuleDetailView: View {
     let capsuleID: UUID
     @Query(sort: \VoxlueData.Capsule.createdAt, order: .reverse)

@@ -100,11 +100,11 @@ private struct CircleRow: View {
 #Preview("有圈") {
     CircleListView()
         .environment(ServiceContainer.preview())
-        .environment(AgentContainer())
+        .environment(HealthEnv(provider: FakeHealthProviding(snapshot: nil)))
 }
 
 #Preview("空") {
     CircleListView()
         .environment(ServiceContainer.previewEmpty())
-        .environment(AgentContainer())
+        .environment(HealthEnv(provider: FakeHealthProviding(snapshot: nil)))
 }

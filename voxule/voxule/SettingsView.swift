@@ -1,9 +1,10 @@
 import SwiftUI
+import VoxlueServices
 
 /// 「我」标签下的设置入口 —— 把陪伴 agent 的两个开关聚到一处：
 /// 浮现频率（cadence）与陪伴授权（HealthKit）。
 struct SettingsView: View {
-    @Environment(AgentContainer.self) private var agent
+    @Environment(HealthEnv.self) private var healthEnv
 
     var body: some View {
         Form {
@@ -14,7 +15,7 @@ struct SettingsView: View {
                     Label("浮现频率", systemImage: "wand.and.stars")
                 }
                 NavigationLink {
-                    HealthAuthorizationView(health: agent.health)
+                    HealthAuthorizationView(health: healthEnv.provider)
                 } label: {
                     Label("陪伴授权", systemImage: "heart.text.square")
                 }
@@ -30,5 +31,5 @@ struct SettingsView: View {
 
 #Preview {
     NavigationStack { SettingsView() }
-        .environment(AgentContainer())
+        .environment(HealthEnv(provider: FakeHealthProviding(snapshot: nil)))
 }

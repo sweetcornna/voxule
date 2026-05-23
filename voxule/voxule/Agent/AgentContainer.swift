@@ -6,12 +6,9 @@ import VoxlueServices
 /// agent 闭环的依赖装配点（App 壳层）。
 /// MV 模式：直接持有具体服务，不套 ViewModel。
 @MainActor
-@Observable
 final class AgentContainer {
     let gateway: any AgentGatewaying
     let intelligence: any IntelligenceServicing
-    /// HealthKit wrapper —— 给设置页授权请求复用同一实例。
-    let health: any HealthProviding
 
     /// 生产装配 —— 真服务 + 真代理。
     /// - Parameter proxyURL: serverless 代理地址（Task 8 部署后得到）。
@@ -22,7 +19,6 @@ final class AgentContainer {
         #else
         let health: any HealthProviding = FakeHealthProviding(snapshot: nil)
         #endif
-        self.health = health
         let distiller = SignalDistiller(health: health, store: store)
         let client = HTTPRemoteModelClient(proxyURL: proxyURL)
         // 后台轮里现装一个 TriggerEngine —— 它读 SwiftData、surface() 只更新
@@ -44,7 +40,6 @@ final class AgentContainer {
     init(previewDecision: SurfacingDecision = .hold) {
         self.gateway = FakeAgentGateway(decision: previewDecision)
         self.intelligence = FakeIntelligenceServicing(title: "窗外的雨声")
-        self.health = FakeHealthProviding(snapshot: nil)
     }
 
     /// 后台唤醒入口 —— BGTaskScheduler 在安静时段调它。
