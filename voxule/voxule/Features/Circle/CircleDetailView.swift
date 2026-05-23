@@ -53,9 +53,15 @@ struct CircleDetailView: View {
                 .disabled(isMakingInvitation)
 
                 if let errorText {
-                    Text(errorText)
-                        .font(VoxlueTypography.caption)
-                        .foregroundStyle(VoxlueColor.vermillion)
+                    // 错误用 ink 主色 + 朱红警告 icon 区分，避免与朱红 CTA 抢色。
+                    Label {
+                        Text(errorText)
+                            .font(VoxlueTypography.caption)
+                            .foregroundStyle(VoxlueColor.ink)
+                    } icon: {
+                        Image(systemName: "exclamationmark.circle")
+                            .foregroundStyle(VoxlueColor.vermillion)
+                    }
                 }
             } footer: {
                 Text("生成一个链接，用 iMessage 或任意方式发给对方；对方点开即可加入。")
@@ -125,20 +131,11 @@ private struct CircleCapsulesList: View {
                     Text(capsule.title.isEmpty ? "（无题）" : capsule.title)
                         .font(VoxlueTypography.serifBody)
                         .foregroundStyle(VoxlueColor.ink)
-                    Text("\(capsule.authorName.isEmpty ? "某人" : capsule.authorName) · \(stateLabel(for: capsule.state))")
+                    Text("\(capsule.authorName.isEmpty ? "某人" : capsule.authorName) · \(capsule.state.displayLabel)")
                         .font(VoxlueTypography.meta)
                         .foregroundStyle(VoxlueColor.graphite)
                 }
             }
-        }
-    }
-
-    private func stateLabel(for state: CapsuleState) -> String {
-        switch state {
-        case .buried: "已埋下"
-        case .developing: "显影中"
-        case .developed: "等你听"
-        case .opened: "已开启"
         }
     }
 }

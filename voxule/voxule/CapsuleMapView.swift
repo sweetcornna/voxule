@@ -38,15 +38,26 @@ struct CapsuleMapView: View {
             ForEach(pins) { pin in
                 Annotation(pin.title, coordinate: pin.coordinate) {
                     // 已埋下：暗房灰相机标；显影中：朱红相片标。
+                    // 用 .thinMaterial 让 pin 在浅 / 深底图都有玻璃质感，
+                    // 朱红描边在亮底图也保持识别；MapKit Annotation 会把子视图
+                    // 栅格化到瓦片边界内，自带 .stamp 阴影会被裁，所以这里靠
+                    // 玻璃材质 + 描边而不是阴影来扩边界。
                     Image(systemName: pin.isDeveloping
                           ? "photo.fill" : "mappin.circle")
                         .font(.title3)
                         .foregroundStyle(pin.isDeveloping
                                          ? VoxlueColor.vermillion
                                          : VoxlueColor.graphite)
-                        .padding(VoxlueSpacing.xs)
-                        .background(VoxlueColor.paperHighlight, in: Circle())
-                        .voxlueShadow(.stamp)
+                        .padding(VoxlueSpacing.sm)
+                        .background(.thinMaterial, in: Circle())
+                        .overlay(
+                            Circle().strokeBorder(
+                                pin.isDeveloping
+                                    ? VoxlueColor.vermillion
+                                    : VoxlueColor.graphite,
+                                lineWidth: 1
+                            )
+                        )
                 }
             }
         }

@@ -156,7 +156,7 @@ struct CapsuleDetailView: View {
         if capsule.duration > 0 {
             parts.append(durationString)
         }
-        parts.append(stateLabel)
+        parts.append(capsule.state.displayLabel)
         return parts.joined(separator: " · ")
     }
 
@@ -176,15 +176,6 @@ struct CapsuleDetailView: View {
         case .place: "地点锁"
         case .date: "时间锁"
         case .mood: "情绪锁"
-        }
-    }
-
-    private var stateLabel: String {
-        switch capsule.state {
-        case .buried: "已埋下"
-        case .developing: "显影中"
-        case .developed: "等你听"
-        case .opened: "已开启"
         }
     }
 

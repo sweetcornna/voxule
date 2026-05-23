@@ -52,7 +52,8 @@ struct AcceptInvitationView: View {
                         .multilineTextAlignment(.center)
                     Button("关闭") { dismiss() }
                         .font(VoxlueTypography.serifBody)
-                        .foregroundStyle(VoxlueColor.graphite)
+                        .buttonStyle(.bordered)
+                        .tint(VoxlueColor.graphite)
                 }
             }
             .padding(VoxlueSpacing.xxl)

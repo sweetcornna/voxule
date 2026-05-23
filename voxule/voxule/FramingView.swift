@@ -54,18 +54,18 @@ struct FramingView: View {
             }
 
             Section {
+                // Picker / DatePicker 沿用 App 级 tint —— RootTabView 已设 vermillion，
+                // 这里不重复显式声明，与本 PR 其他 Form 屏保持一致。
                 Picker("锁", selection: $lockKind) {
                     Text("地点锁").tag(Lock.Kind.place)
                     Text("时间锁").tag(Lock.Kind.date)
                     Text("情绪锁").tag(Lock.Kind.mood)
                 }
                 .pickerStyle(.segmented)
-                .tint(VoxlueColor.vermillion)
                 if lockKind == .date {
                     DatePicker("到这天显影", selection: $dateLockTarget,
                                in: Date()..., displayedComponents: [.date])
                         .font(VoxlueTypography.serifBody)
-                        .tint(VoxlueColor.vermillion)
                 }
                 Text(lockHint)
                     .font(VoxlueTypography.caption)
@@ -79,7 +79,6 @@ struct FramingView: View {
                     Text("自己").tag(Recipient.me)
                     Text("声音圈").tag(Recipient.circle)
                 }
-                .tint(VoxlueColor.vermillion)
                 Text("收件人埋下时定死，之后不可改。")
                     .font(VoxlueTypography.caption)
                     .foregroundStyle(VoxlueColor.graphite)

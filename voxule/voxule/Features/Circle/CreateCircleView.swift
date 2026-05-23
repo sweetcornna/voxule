@@ -39,9 +39,14 @@ struct CreateCircleView: View {
 
                 if let errorText {
                     Section {
-                        Text(errorText)
-                            .font(VoxlueTypography.caption)
-                            .foregroundStyle(VoxlueColor.vermillion)
+                        Label {
+                            Text(errorText)
+                                .font(VoxlueTypography.caption)
+                                .foregroundStyle(VoxlueColor.ink)
+                        } icon: {
+                            Image(systemName: "exclamationmark.circle")
+                                .foregroundStyle(VoxlueColor.vermillion)
+                        }
                     }
                 }
             }
