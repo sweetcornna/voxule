@@ -20,7 +20,7 @@ final class voxuleUITests: XCTestCase {
         }
     }
 
-    /// 端到端验证 v1 主循环：冲一张 → 装裱埋下 → 样片墙列出 → 进详情回放。
+    /// 端到端验证 v1 主循环：首页冲一张 → 装裱埋下 → 样片墙列出 → 进详情回放。
     /// 用 -uiTestFakeAudio 注入假音频服务，避开真麦克风。
     @MainActor
     func testRecordBuryPlayMainLoop() throws {
@@ -28,9 +28,14 @@ final class voxuleUITests: XCTestCase {
         app.launchArguments = ["-uiTestFakeAudio"]
         app.launch()
 
+        // 切到样片墙取基线行数（先量再录，免得录完才发现起点不对）。
+        app.tabBars.buttons["样片墙"].tap()
+        usleep(500_000)
         let countBefore = app.cells.count
 
-        // 冲一张 → 冲洗台 → 录音 → 停止。
+        // 回首页点巨大 mic。
+        app.tabBars.buttons["首页"].tap()
+        usleep(500_000)
         app.buttons["冲一张"].tap()
         let recordButton = app.buttons["开始冲洗"]
         XCTAssertTrue(recordButton.waitForExistence(timeout: 5), "未进入冲洗台")
@@ -39,12 +44,13 @@ final class voxuleUITests: XCTestCase {
         XCTAssertTrue(stopButton.waitForExistence(timeout: 5), "录音未开始")
         stopButton.tap()
 
-        // 进入装裱 → 埋下。
+        // 装裱 → 埋下。埋下 dismiss 后回到首页（不是样片墙），需手动切去样片墙看新行。
         let buryButton = app.buttons["埋下"]
         XCTAssertTrue(buryButton.waitForExistence(timeout: 5), "未进入装裱视图")
         buryButton.tap()
+        usleep(800_000)
+        app.tabBars.buttons["样片墙"].tap()
 
-        // 回到样片墙 —— 多出一行。
         XCTAssertTrue(
             waitForCellCount(app, equals: countBefore + 1, timeout: 5),
             "埋下后样片墙未新增一行"

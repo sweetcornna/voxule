@@ -2,8 +2,8 @@ import SwiftUI
 import SwiftData
 import VoxlueData
 
-/// App 根骨架 —— 三标签：样片墙 / 地图 / 我。
-/// 「我」在本计划仅占位，由计划 05 充实。
+/// App 根骨架 —— 四标签：首页（巨大录音键）/ 样片墙 / 地图 / 我。
+/// 首页是 App 入口，让「冲一张声音」是用户第一动作；样片墙是储存。
 /// 深链 / 通知 / 灵动岛点击经 `CapsuleRouter` 落到一张详情 sheet。
 struct RootTabView: View {
     /// 触发引擎依赖容器；预览未注入时为 nil（不影响渲染）。
@@ -11,6 +11,9 @@ struct RootTabView: View {
 
     var body: some View {
         TabView {
+            Tab("首页", systemImage: "mic.fill") {
+                HomeView()
+            }
             Tab("样片墙", systemImage: "rectangle.stack") {
                 ShelfView()
             }

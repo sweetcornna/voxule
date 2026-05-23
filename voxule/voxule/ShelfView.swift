@@ -3,34 +3,22 @@ import SwiftData
 import VoxlueData
 import VoxlueDesign
 
-/// 样片墙 —— 全部胶囊按埋下时间倒序排开，是 App 的主页。
-/// 改成纸基底 + PhotoCard 网格 + 玻璃浮动「冲一张」入口。
+/// 样片墙 —— 全部胶囊按埋下时间倒序排开，存储与浏览中心。
+/// 录音入口已搬到首页（HomeView）巨型 mic 键，这里不再放浮动入口，避免重复 chrome。
 struct ShelfView: View {
     @Query(sort: \VoxlueData.Capsule.createdAt, order: .reverse)
     private var capsules: [VoxlueData.Capsule]
 
-    @State private var isRecording = false
-
     var body: some View {
         NavigationStack {
-            ZStack(alignment: .bottom) {
+            ZStack {
                 PaperBackground().ignoresSafeArea()
 
-                Group {
-                    if capsules.isEmpty {
-                        emptyState
-                    } else {
-                        photoStack
-                    }
+                if capsules.isEmpty {
+                    emptyState
+                } else {
+                    photoStack
                 }
-
-                // 玻璃浮动主按钮 —— 「冲一张」是 App 唯一主操作，水平居中在底部正中，
-                // 与底部玻璃 TabBar 错开位置但视觉上对齐成「行动焦点」。
-                GlassFloatingButton(systemImage: "mic.fill") {
-                    isRecording = true
-                }
-                .padding(.bottom, VoxlueSpacing.lg)
-                .accessibilityLabel("冲一张")
             }
             .navigationTitle("样片墙")
             .navigationDestination(for: UUID.self) { id in
@@ -38,14 +26,10 @@ struct ShelfView: View {
                     CapsuleDetailView(capsule: capsule)
                 }
             }
-            .fullScreenCover(isPresented: $isRecording) {
-                RecordView()
-            }
         }
     }
 
     private var emptyState: some View {
-        // 必须撑满父 ZStack 才不会被 .bottomTrailing 对齐拽到角落里去。
         VStack(spacing: VoxlueSpacing.lg) {
             // 大字 Crimson 斜体 display —— 给空状态一点旧派的留白与诗意。
             Text("voxlue")
@@ -54,7 +38,7 @@ struct ShelfView: View {
             Text("样片墙还空着")
                 .font(VoxlueTypography.heading)
                 .foregroundStyle(VoxlueColor.ink)
-            MarginNote("冲一张声音，埋下它。")
+            MarginNote("去首页冲一张声音。")
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -84,7 +68,6 @@ struct ShelfView: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        .contentMargins(.bottom, VoxlueSpacing.xxl + 60, for: .scrollContent)
     }
 }
 
