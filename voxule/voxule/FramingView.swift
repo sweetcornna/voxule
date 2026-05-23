@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import VoxlueData
+import VoxlueDesign
 import VoxlueServices
 
 /// 装裱视图 —— 给录音选锁、选收件人、定标题，确认后埋下。
@@ -23,22 +24,36 @@ struct FramingView: View {
 
     var body: some View {
         Form {
-            Section("这一张") {
-                LabeledContent("时长", value: durationString)
-                WaveformView(samples: recording.waveform, tint: .accentColor)
+            Section {
+                LabeledContent {
+                    Text(durationString)
+                        .font(VoxlueTypography.meta)
+                        .foregroundStyle(VoxlueColor.graphite)
+                } label: {
+                    Text("时长")
+                        .font(VoxlueTypography.serifBody)
+                        .foregroundStyle(VoxlueColor.ink)
+                }
+                WaveformView(samples: recording.waveform, tint: VoxlueColor.ink)
                     .frame(height: 44)
                     .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+            } header: {
+                sectionHeader("这一张")
             }
 
-            Section("标题") {
+            Section {
                 TextField("给这张声音起个名", text: $title)
+                    .font(VoxlueTypography.serifBody)
                 Button("让冲洗师代写", systemImage: "wand.and.stars") {
                     title = draftTitle()
                 }
-                .font(.callout)
+                .font(VoxlueTypography.caption)
+                .foregroundStyle(VoxlueColor.vermillion)
+            } header: {
+                sectionHeader("标题")
             }
 
-            Section("上一把锁") {
+            Section {
                 Picker("锁", selection: $lockKind) {
                     Text("地点锁").tag(Lock.Kind.place)
                     Text("时间锁").tag(Lock.Kind.date)
@@ -48,26 +63,33 @@ struct FramingView: View {
                 if lockKind == .date {
                     DatePicker("到这天显影", selection: $dateLockTarget,
                                in: Date()..., displayedComponents: [.date])
+                        .font(VoxlueTypography.serifBody)
                 }
                 Text(lockHint)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(VoxlueTypography.caption)
+                    .foregroundStyle(VoxlueColor.graphite)
+            } header: {
+                sectionHeader("上一把锁")
             }
 
-            Section("给谁") {
+            Section {
                 Picker("收件人", selection: $recipient) {
                     Text("自己").tag(Recipient.me)
                     Text("声音圈").tag(Recipient.circle)
                 }
                 Text("收件人埋下时定死，之后不可改。")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(VoxlueTypography.caption)
+                    .foregroundStyle(VoxlueColor.graphite)
 
                 if recipient == .circle {
                     CirclePickerView(selectedCircleID: $selectedCircleID)
                 }
+            } header: {
+                sectionHeader("给谁")
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(VoxlueColor.paper.ignoresSafeArea())
         .navigationTitle("装裱")
         .navigationBarTitleDisplayMode(.inline)
         .onChange(of: recipient) { _, new in
@@ -78,6 +100,8 @@ struct FramingView: View {
             ToolbarItem(placement: .confirmationAction) {
                 Button("埋下") { bury() }
                     .disabled(recipient == .circle && selectedCircleID == nil)
+                    .font(VoxlueTypography.serifBody)
+                    .foregroundStyle(VoxlueColor.vermillion)
             }
         }
         .alert("没能定影", isPresented: $saveFailed) {
@@ -85,6 +109,14 @@ struct FramingView: View {
         } message: {
             Text("写入失败，请再试一次。")
         }
+    }
+
+    /// 思源宋小标题 —— Form 默认 section header 是大写英文风，与设计语言冲突。
+    private func sectionHeader(_ text: String) -> some View {
+        Text(text)
+            .font(VoxlueTypography.caption)
+            .foregroundStyle(VoxlueColor.graphite)
+            .textCase(nil)
     }
 
     private var durationString: String {

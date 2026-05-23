@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import VoxlueDesign
 import VoxlueServices
 
 /// 录音视图 —— 点按开始/停止录音，实时声纹与计时。
@@ -18,43 +19,57 @@ struct RecordView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 32) {
-                Spacer()
+            ZStack {
+                VoxlueColor.negativeBlack.ignoresSafeArea()
 
-                Text(timeString(recorder.elapsed))
-                    .font(.system(size: 56, weight: .light, design: .monospaced))
-                    .contentTransition(.numericText())
+                VStack(spacing: VoxlueSpacing.xl) {
+                    Spacer()
 
-                WaveformView(samples: liveSamples.isEmpty ? idleSamples : liveSamples,
-                             tint: recorder.isRecording ? .red : .secondary)
+                    Text(timeString(recorder.elapsed))
+                        .font(VoxlueTypography.serifLatin(.display))
+                        .foregroundStyle(VoxlueColor.paperHighlight)
+                        .contentTransition(.numericText())
+
+                    WaveformView(
+                        samples: liveSamples.isEmpty ? idleSamples : liveSamples,
+                        tint: recorder.isRecording
+                            ? VoxlueColor.vermillion
+                            : VoxlueColor.darkroomGray
+                    )
                     .frame(height: 80)
-                    .padding(.horizontal)
+                    .padding(.horizontal, VoxlueSpacing.xl)
 
-                Spacer()
+                    Spacer()
 
-                Button {
-                    recorder.isRecording ? stop() : start()
-                } label: {
-                    Image(systemName: recorder.isRecording ? "stop.circle.fill" : "mic.circle.fill")
-                        .font(.system(size: 84))
-                        .foregroundStyle(recorder.isRecording ? .red : .accentColor)
+                    Button {
+                        recorder.isRecording ? stop() : start()
+                    } label: {
+                        Image(systemName: recorder.isRecording ? "stop.circle.fill" : "mic.circle.fill")
+                            .font(.system(size: 84))
+                            .foregroundStyle(VoxlueColor.vermillion)
+                    }
+                    .accessibilityLabel(recorder.isRecording ? "停止" : "开始冲洗")
+
+                    Text(recorder.isRecording ? "正在冲洗这一张……" : "点按，冲一张声音")
+                        .font(VoxlueTypography.caption)
+                        .foregroundStyle(VoxlueColor.darkroomGray)
+
+                    Spacer()
                 }
-                .accessibilityLabel(recorder.isRecording ? "停止" : "开始冲洗")
-
-                Text(recorder.isRecording ? "正在冲洗这一张……" : "点按，冲一张声音")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-
-                Spacer()
             }
             .navigationTitle("冲洗台")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(VoxlueColor.negativeBlack, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("取消") {
                         recorder.cancel()
                         dismiss()
                     }
+                    // 与录音按钮同朱红 —— 让取消/录音两键在暗房里彼此呼应。
+                    .foregroundStyle(VoxlueColor.vermillion)
                 }
             }
             .alert("没有麦克风权限", isPresented: $permissionDenied) {
