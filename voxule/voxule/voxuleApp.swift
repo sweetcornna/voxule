@@ -19,6 +19,10 @@ struct voxuleApp: App {
     @State private var shareRouter: DeepLinkRouter
     @State private var healthEnv: HealthEnv
 
+    /// 首次启动引导是否已看过。@AppStorage 走 UserDefaults，CloudKit 不同步 —— 每台设备各看一次。
+    @AppStorage("voxlue.hasSeenOnboarding") private var hasSeenOnboarding = false
+    @State private var showOnboarding = false
+
     /// serverless 代理地址 —— Task 8 部署后填入真实 Worker 地址。
     static let agentProxyURL = URL(string: "https://voxlue-agent-proxy.example.workers.dev")!
 
@@ -67,6 +71,15 @@ struct voxuleApp: App {
             appEnvironment = .live()
         }
 
+        // 测试环境（-uiTestFakeAudio 或 XCTest 注入）直接当作「已看过引导」，
+        // sheet 永不弹起，免得挡住 testRecordBuryPlayMainLoop 的第一帧点击。
+        // 注意：这里要走 _hasSeenOnboarding 的底层 storage —— @AppStorage 的 wrapper
+        // 在 init 阶段还没绑 SwiftUI scene，直接赋值会被 wrapper 拦住。改写 UserDefaults
+        // 是最稳的做法。
+        if Self.isRunningTests {
+            UserDefaults.standard.set(true, forKey: "voxlue.hasSeenOnboarding")
+        }
+
         let deps = AppDependencies(modelContainer: container)
         // BGTask launch handler 须在 App 启动完成前注册。
         deps.registerBackgroundTasks()
@@ -110,6 +123,17 @@ struct voxuleApp: App {
                     AcceptInvitationView()
                         .environment(shareRouter)
                 }
+                // 首次启动 3 页引导 —— 仅当 hasSeenOnboarding 为 false 时弹一次；
+                // 用 .task 起手代替直接 isPresented 绑定，避开与 fullScreenCover、
+                // shareAcceptanceSheet 同帧抢演的边界。
+                .task {
+                    if !hasSeenOnboarding {
+                        showOnboarding = true
+                    }
+                }
+                .sheet(isPresented: $showOnboarding) {
+                    OnboardingView()
+                }
         }
         .modelContainer(modelContainer)
         // 安静时段被唤醒 → 跑一轮 agent 情绪浮现闭环。
@@ -134,6 +158,19 @@ struct voxuleApp: App {
         )
         await container.handleBackgroundSurfacing()
         await scheduleNextSurfacing()
+    }
+
+    /// 测试环境判定 —— UI 测试用 `-uiTestFakeAudio` 启动参数；单测靠
+    /// `XCTestSessionIdentifier` 环境变量。两条任一成立都视作测试，
+    /// 跳过首次启动引导，免得挡住 sheet/cover 主路径。
+    private static var isRunningTests: Bool {
+        if ProcessInfo.processInfo.arguments.contains("-uiTestFakeAudio") {
+            return true
+        }
+        if ProcessInfo.processInfo.environment["XCTestSessionIdentifier"] != nil {
+            return true
+        }
+        return false
     }
 
     /// 排下一次浮现唤醒。频率按 cadence 设置调整（轻轻地/偶尔/关）。
