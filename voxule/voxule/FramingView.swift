@@ -70,6 +70,15 @@ struct FramingView: View {
                 Text(lockHint)
                     .font(VoxlueTypography.caption)
                     .foregroundStyle(VoxlueColor.graphite)
+
+                // 让用户在按「埋下」之前，先看到落地后会盖上的朱章 ——
+                // 隐喻才读得通：装裱 → 盖章 → 入库。
+                HStack(spacing: VoxlueSpacing.md) {
+                    SealStamp(.buried)
+                    MarginNote("埋下后会盖上这个章")
+                    Spacer(minLength: 0)
+                }
+                .padding(.vertical, VoxlueSpacing.xs)
             } header: {
                 sectionHeader("上一把锁")
             }
