@@ -28,7 +28,7 @@ struct SurfacedCapsuleView: View {
 
     var body: some View {
         ZStack {
-            VoxlueColor.paper.ignoresSafeArea()
+            VoxlueColor.paper.ignoresSafeArea().paperGrain()
 
             if let capsule {
                 VStack(spacing: VoxlueSpacing.xl) {
@@ -67,6 +67,12 @@ struct SurfacedCapsuleView: View {
                         }
                     }
                     .frostReveal(developed: developed)
+                    .overlay(alignment: .topTrailing) {
+                        // Caveat 手写边注：像冲洗师在样片角落落了一句。
+                        MarginNote("今天，它想被你听到。")
+                            .offset(x: 16, y: -8)
+                            .rotationEffect(.degrees(2))
+                    }
 
                     Text("不急。它会一直在这里，等你想听的时候。")
                         .font(VoxlueTypography.caption)

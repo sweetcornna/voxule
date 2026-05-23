@@ -14,7 +14,7 @@ struct ShelfView: View {
     var body: some View {
         NavigationStack {
             ZStack(alignment: .bottomTrailing) {
-                VoxlueColor.paper.ignoresSafeArea()
+                VoxlueColor.paper.ignoresSafeArea().paperGrain()
 
                 Group {
                     if capsules.isEmpty {
@@ -46,16 +46,15 @@ struct ShelfView: View {
 
     private var emptyState: some View {
         // 必须撑满父 ZStack 才不会被 .bottomTrailing 对齐拽到角落里去。
-        VStack(spacing: VoxlueSpacing.md) {
-            Image(systemName: "rectangle.stack")
-                .font(.system(size: 44))
+        VStack(spacing: VoxlueSpacing.lg) {
+            // 大字 Crimson 斜体 display —— 给空状态一点旧派的留白与诗意。
+            Text("voxlue")
+                .font(VoxlueTypography.display)
                 .foregroundStyle(VoxlueColor.darkroomGray)
             Text("样片墙还空着")
                 .font(VoxlueTypography.heading)
                 .foregroundStyle(VoxlueColor.ink)
-            Text("冲一张声音，埋下它。")
-                .font(VoxlueTypography.serifBody)
-                .foregroundStyle(VoxlueColor.graphite)
+            MarginNote("冲一张声音，埋下它。")
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

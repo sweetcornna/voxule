@@ -15,7 +15,7 @@ struct CircleListView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                VoxlueColor.paper.ignoresSafeArea()
+                VoxlueColor.paper.ignoresSafeArea().paperGrain()
 
                 Group {
                     if isLoading {
@@ -86,21 +86,19 @@ struct CircleListView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: VoxlueSpacing.md) {
-            Image(systemName: "person.2.wave.2")
-                .font(.system(size: 44))
+        VStack(spacing: VoxlueSpacing.lg) {
+            Text("voxlue")
+                .font(VoxlueTypography.display)
                 .foregroundStyle(VoxlueColor.darkroomGray)
             Text("还没有声音圈")
                 .font(VoxlueTypography.heading)
                 .foregroundStyle(VoxlueColor.ink)
-            Text("建一个圈，把家人或挚友请进来。")
-                .font(VoxlueTypography.serifBody)
-                .foregroundStyle(VoxlueColor.graphite)
+            MarginNote("家人或挚友的小圈子。")
             Button("建一个声音圈") { showCreateSheet = true }
                 .font(VoxlueTypography.serifBody)
                 .buttonStyle(.borderedProminent)
                 .tint(VoxlueColor.vermillion)
-                .padding(.top, VoxlueSpacing.sm)
+                .padding(.top, VoxlueSpacing.md)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

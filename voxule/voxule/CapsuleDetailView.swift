@@ -19,7 +19,7 @@ struct CapsuleDetailView: View {
 
     var body: some View {
         ZStack {
-            VoxlueColor.paper.ignoresSafeArea()
+            VoxlueColor.paper.ignoresSafeArea().paperGrain()
 
             ScrollView {
                 VStack(alignment: .leading, spacing: VoxlueSpacing.xl) {
@@ -41,17 +41,32 @@ struct CapsuleDetailView: View {
         }
     }
 
-    /// 顶部相片 —— 用 PhotoCard 包声纹波形，朱章盖在右上（PhotoCard 内部对齐）。
+    /// 顶部相片 —— 按状态分流：
+    /// .buried 显未显影的 NegativeCard 反相；其余走 PhotoCard 已显影。
+    @ViewBuilder
     private var photoHero: some View {
-        PhotoCard(title: displayTitle, meta: headerMeta, seal: sealKind) {
-            WaveformView(
-                samples: capsule.waveform.isEmpty
-                    ? [Float](repeating: 0.1, count: 80)
-                    : capsule.waveform,
-                progress: player.progress,
-                tint: VoxlueColor.paperHighlight
-            )
-            .padding(.horizontal, VoxlueSpacing.lg)
+        if capsule.state == .buried {
+            NegativeCard(title: displayTitle, meta: headerMeta) {
+                WaveformView(
+                    samples: capsule.waveform.isEmpty
+                        ? [Float](repeating: 0.1, count: 80)
+                        : capsule.waveform,
+                    progress: player.progress,
+                    tint: VoxlueColor.darkroomGray
+                )
+                .padding(.horizontal, VoxlueSpacing.lg)
+            }
+        } else {
+            PhotoCard(title: displayTitle, meta: headerMeta, seal: sealKind) {
+                WaveformView(
+                    samples: capsule.waveform.isEmpty
+                        ? [Float](repeating: 0.1, count: 80)
+                        : capsule.waveform,
+                    progress: player.progress,
+                    tint: VoxlueColor.paperHighlight
+                )
+                .padding(.horizontal, VoxlueSpacing.lg)
+            }
         }
     }
 
