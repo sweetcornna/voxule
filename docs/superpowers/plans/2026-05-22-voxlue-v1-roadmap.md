@@ -299,4 +299,55 @@ public protocol IntelligenceServicing: Sendable {
 - **真 CKShare 共享**：声音圈共享链路需真机 + iCloud 账号验证。
 - **agent 代理部署**：`cd backend/agent-proxy && wrangler deploy`，部署后把真实 Worker 地址填入 `voxuleApp.agentProxyURL`。
 - **三视图接导航**：cadence 设置 / HealthKit 授权 / 浮现卡三个视图已交付，待接入导航。
+  → **2026-05-23 PR #6 完成**：CirclePickerView 接进装裱表单；cadence / HealthKit / 浮现卡三视图入导航；developing 态走 SurfacedCapsuleView 陪伴落地。
+- **真 CKShare 共享**：声音圈共享链路需真机 + iCloud 账号验证。
+- **agent 代理部署**：`cd backend/agent-proxy && wrangler deploy`，部署后把真实 Worker 地址填入 `voxuleApp.agentProxyURL`。
 - **真 HealthKit / agent / CloudKit**：均需真机 + 对应账号与大模型 API key 才能端到端联调。
+
+---
+
+## 8. 设计语言全面落地（2026-05-23）
+
+v1 主功能完成后，VoxlueDesign 包（P3 · Photographic Plate · 暗房黑白胶片美学，方案 B：玻璃只在 chrome，纸只在 content）首次接入应用屏。**13 个 view + 全局 tokens** 分两轮落地，覆盖 100% 用户可见界面。
+
+### 8.1 第一轮 · hero 五屏（PR #8）
+
+| 屏 | 形态 |
+|---|---|
+| 样片墙 ShelfView | 纸基底 + PhotoCard 网格（黑底声纹 + 朱章状态）+ GlassFloatingButton「冲一张」 |
+| 装裱 FramingView | 纸基 Form，思源宋节标题，Space Mono 时长，朱红 CTA |
+| 相片详情 CapsuleDetailView | 顶部 PhotoCard hero + 朱章；PaperCard 包回放与元数据 |
+| 浮现卡 SurfacedCapsuleView | 中央 PaperCard + 朱红「听听看」 + 入场霜化开 FrostReveal |
+| 冲洗台 RecordView | 暗房 negativeBlack 背景 + Crimson 大字时钟 + 朱红录音 / 停止 |
+
+全局：voxuleApp 注册 4 套自定义字体（Crimson Pro · 思源宋 · Space Mono · Caveat），App 级 tint = `VoxlueColor.vermillion`。
+
+### 8.2 第二轮 · 余下八屏（PR #10）
+
+| 屏 | 形态 |
+|---|---|
+| 设置 / 浮现频率 / 陪伴授权 / Dev 工具 | 纸基 Form + 思源宋节标题 + 朱红 accent |
+| 声音圈列表 + 详情 + 新建 + 接受邀请 | 纸基 + PaperCard rows + 朱红 CTA |
+| 地图 CapsuleMapView | 玻璃 thinMaterial pin + 1pt 描边（埋下灰 / 显影中朱红） |
+
+同 PR 清第一轮评审遗留：
+- `VoxlueFontRegistrar.registerAll` 搬到 `static let _fontsRegistered`，进程级一次性
+- `SealStamp` 收进 `PhotoCard` 作 `seal:` 可选参数，两处 overlay 重复消掉
+- Picker / DatePicker `.tint` 统一沿用 App 级
+
+### 8.3 累计 PR 与评审
+
+| PR | 标题 | 评审要点 |
+|---|---|---|
+| #6 | 收尾视图接进导航 | M1/M2/M3/m3：抽 HealthEnv 不重复 CLLocationManager；SurfacedCapsuleView 听听看接通真回放；developing 三源注释；移除无观察 @Observable |
+| #7 | DEBUG Dev 工具菜单 | C1：CloudKit 模式禁用清空；M1：重置 cadence 补排 BGTask |
+| #8 | hero 五屏设计语言 | M1：frostReveal 用 DispatchQueue.main.async 延后翻 @State；m1：NavigationLink `.buttonStyle(.plain)` 隐 chevron；m4：录音页取消按钮改朱红 |
+| #9 | 空状态居中（PR #8 回归） | 单行 fix：`.frame(maxWidth: .infinity, maxHeight: .infinity)` |
+| #10 | 余下八屏设计语言 | B1：接受失败按钮恢复 `.bordered`；B2：地图 pin 改 `.thinMaterial` + 描边；S5：`CapsuleState.displayLabel` 扩展统一三处文案；S6：error 文案 ink + 朱红警告 icon |
+
+### 8.4 留给 coworker 的部分（按用户分工）
+
+- **`wrangler deploy`** serverless 代理并填真实 Worker URL 到 `voxuleApp.agentProxyURL`
+- **真机** HealthKit / CKShare / 真 agent 联调
+- **真 API key** 与大模型对接
+- Xcode 新建 **Widget Extension target**（源文件已在 `voxule/VoxlueWidget/`，灵动岛 DevelopingIslandLabel 等待接入）
