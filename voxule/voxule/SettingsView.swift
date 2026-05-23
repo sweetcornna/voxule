@@ -24,6 +24,20 @@ struct SettingsView: View {
             } footer: {
                 Text("两项都是陪伴层面的设置 —— 与你的胶囊安全无关，随时可调。")
             }
+
+            #if DEBUG
+            Section {
+                NavigationLink {
+                    DevToolsView()
+                } label: {
+                    Label("Dev 工具", systemImage: "hammer")
+                }
+            } header: {
+                Text("Dev")
+            } footer: {
+                Text("仅 DEBUG 构建可见 —— 种子数据、手动浮现、清空。Release 构建自动隐藏。")
+            }
+            #endif
         }
         .navigationTitle("设置")
     }
