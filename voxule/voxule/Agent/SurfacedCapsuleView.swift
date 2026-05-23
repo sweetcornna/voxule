@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import VoxlueData
+import VoxlueServices
 
 /// 浮现卡 —— 一枚被陪伴 agent 浮现的情绪胶囊。
 /// 由灵动岛/通知点开进入；agent 闭环在前端的落点。
@@ -8,8 +9,12 @@ struct SurfacedCapsuleView: View {
     /// 被浮现胶囊的 id（agent 决定，经深链传入）。
     let capsuleID: UUID
 
+    @Environment(\.appEnvironment) private var env
     @Environment(\.modelContext) private var context
     @Query private var capsules: [VoxlueData.Capsule]
+    @State private var playFailed = false
+
+    private var player: any AudioPlaying { env.player }
 
     init(capsuleID: UUID) {
         self.capsuleID = capsuleID
@@ -37,8 +42,7 @@ struct SurfacedCapsuleView: View {
                 }
 
                 Button {
-                    let store = CapsuleStore(context: context)
-                    try? store.updateState(capsule, to: .opened)
+                    listen(to: capsule)
                 } label: {
                     Label("听听看", systemImage: "play.circle.fill")
                         .frame(maxWidth: .infinity)
@@ -55,6 +59,36 @@ struct SurfacedCapsuleView: View {
             }
         }
         .padding(32)
+        .onDisappear { onLeave() }
+        .alert("没能放出这段声音", isPresented: $playFailed) {
+            Button("好") {}
+        } message: {
+            Text("音频读取失败。")
+        }
+    }
+
+    /// 「听听看」—— 直接起回放。状态保持 .developing，待用户离开本卡再翻为 .opened，
+    /// 避免回放刚开始就被 CapsuleDetailView 切换接管、把音频中断。
+    private func listen(to capsule: VoxlueData.Capsule) {
+        guard let data = capsule.audioData else {
+            playFailed = true
+            return
+        }
+        do {
+            try player.load(data)
+            player.play()
+        } catch {
+            playFailed = true
+        }
+    }
+
+    /// 离开浮现卡：停回放并把胶囊翻到 .opened（仅当仍是 .developing），
+    /// 以便下次进入时走常规详情。
+    private func onLeave() {
+        player.pause()
+        if let capsule, capsule.state == .developing {
+            try? CapsuleStore(context: context).updateState(capsule, to: .opened)
+        }
     }
 }
 

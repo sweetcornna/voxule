@@ -16,6 +16,7 @@ struct voxuleApp: App {
     @State private var dependencies: AppDependencies
     @State private var services: ServiceContainer
     @State private var shareRouter: DeepLinkRouter
+    @State private var healthEnv: HealthEnv
 
     /// serverless 代理地址 —— Task 8 部署后填入真实 Worker 地址。
     static let agentProxyURL = URL(string: "https://voxlue-agent-proxy.example.workers.dev")!
@@ -61,6 +62,7 @@ struct voxuleApp: App {
         _shareRouter = State(
             initialValue: DeepLinkRouter(circleService: serviceContainer.circleService)
         )
+        _healthEnv = State(initialValue: HealthEnv())
     }
 
     var body: some Scene {
@@ -70,6 +72,7 @@ struct voxuleApp: App {
                 .environment(dependencies)
                 .environment(services)
                 .environment(shareRouter)
+                .environment(healthEnv)
                 .task {
                     await dependencies.bootstrap()
                     // 排第一次浮现唤醒 —— .backgroundTask 只注册处理器、不提交请求，

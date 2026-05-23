@@ -17,6 +17,8 @@ struct FramingView: View {
     @State private var recipient: Recipient = .me
     /// 时间锁选定的日期，默认一周后。
     @State private var dateLockTarget = Date().addingTimeInterval(7 * 24 * 3600)
+    /// 选「给声音圈」时锁定的圈 id。recipient 切回「自己」时清空。
+    @State private var selectedCircleID: UUID?
     @State private var saveFailed = false
 
     var body: some View {
@@ -60,13 +62,22 @@ struct FramingView: View {
                 Text("收件人埋下时定死，之后不可改。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+
+                if recipient == .circle {
+                    CirclePickerView(selectedCircleID: $selectedCircleID)
+                }
             }
         }
         .navigationTitle("装裱")
         .navigationBarTitleDisplayMode(.inline)
+        .onChange(of: recipient) { _, new in
+            // 切回「自己」清掉之前选好的圈，避免误归属。
+            if new == .me { selectedCircleID = nil }
+        }
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("埋下") { bury() }
+                    .disabled(recipient == .circle && selectedCircleID == nil)
             }
         }
         .alert("没能定影", isPresented: $saveFailed) {
@@ -116,7 +127,8 @@ struct FramingView: View {
             waveform: recording.waveform,
             state: .buried,
             lock: makeLock(),
-            recipient: recipient
+            recipient: recipient,
+            circleID: recipient == .circle ? selectedCircleID : nil
         )
         do {
             try CapsuleStore(context: context).add(capsule)
@@ -139,4 +151,5 @@ struct FramingView: View {
         )
     }
     .modelContainer(for: VoxlueDataModelsPreview.all, inMemory: true)
+    .environment(ServiceContainer.preview())
 }
