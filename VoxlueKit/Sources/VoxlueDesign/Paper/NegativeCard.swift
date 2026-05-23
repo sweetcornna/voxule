@@ -5,24 +5,37 @@ import SwiftUI
 public struct NegativeCard<Image: View>: View {
     private let title: String
     private let meta: String
+    private let seal: SealStamp.Kind?
     private let image: Image
 
+    /// - Parameters:
+    ///   - seal: 可选的朱章。给的话盖在反相影像区右上角；仍区分锁类型。
     public init(
         title: String,
         meta: String,
+        seal: SealStamp.Kind? = nil,
         @ViewBuilder image: () -> Image
     ) {
         self.title = title
         self.meta = meta
+        self.seal = seal
         self.image = image()
     }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: VoxlueSpacing.sm) {
+            // 影像区 —— 与 PhotoCard 150pt 对齐，混排时行高一致。
             image
                 .frame(maxWidth: .infinity)
-                .frame(height: 110)
+                .frame(height: 150)
                 .opacity(0.55)               // 未显影 —— 影像偏淡。
+                .overlay(alignment: .topTrailing) {
+                    if let seal {
+                        SealStamp(seal)
+                            .padding(.top, VoxlueSpacing.sm)
+                            .padding(.trailing, VoxlueSpacing.sm)
+                    }
+                }
 
             Text(title)
                 .font(VoxlueTypography.serifTitle)

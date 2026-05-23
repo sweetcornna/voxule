@@ -2,20 +2,33 @@ import SwiftUI
 import VoxlueData
 import VoxlueDesign
 
-/// 样片墙的一张相片 —— PhotoCard 包住声纹缩略，右上角盖朱章标状态。
+/// 样片墙的一张相片 —— 按胶囊状态分两种形态：
+/// - `.buried`：NegativeCard 反相（未显影、影像偏淡、深底亮字）
+/// - 其余状态：PhotoCard 正像（已显影、亮底深字、朱章覆盖状态）
 struct CapsuleRow: View {
     let capsule: VoxlueData.Capsule
 
     var body: some View {
-        PhotoCard(title: displayTitle, meta: metaLine, seal: sealKind) {
-            // 图像区 —— 声纹波形，黑底白线。
-            WaveformView(
-                samples: capsule.waveform.isEmpty
-                    ? [Float](repeating: 0.08, count: 64)
-                    : capsule.waveform,
-                tint: VoxlueColor.paperHighlight
-            )
-            .padding(.horizontal, VoxlueSpacing.lg)
+        if capsule.state == .buried {
+            NegativeCard(title: displayTitle, meta: metaLine, seal: sealKind) {
+                WaveformView(
+                    samples: capsule.waveform.isEmpty
+                        ? [Float](repeating: 0.08, count: 64)
+                        : capsule.waveform,
+                    tint: VoxlueColor.darkroomGray
+                )
+                .padding(.horizontal, VoxlueSpacing.lg)
+            }
+        } else {
+            PhotoCard(title: displayTitle, meta: metaLine, seal: sealKind) {
+                WaveformView(
+                    samples: capsule.waveform.isEmpty
+                        ? [Float](repeating: 0.08, count: 64)
+                        : capsule.waveform,
+                    tint: VoxlueColor.paperHighlight
+                )
+                .padding(.horizontal, VoxlueSpacing.lg)
+            }
         }
     }
 
@@ -23,7 +36,7 @@ struct CapsuleRow: View {
         capsule.title.isEmpty ? "（无题）" : capsule.title
     }
 
-    /// 片基小字 —— 锁类型 · 时长。
+    /// 片基小字 —— 锁类型 · 时长 · 地点。
     private var metaLine: String {
         var parts: [String] = [lockLabel]
         if capsule.duration > 0 {
