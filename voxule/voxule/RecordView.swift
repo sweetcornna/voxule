@@ -14,6 +14,7 @@ struct RecordView: View {
     @State private var liveSamples: [Float] = []
     @State private var result: RecordingResult?
     @State private var sampleTimer: Timer?
+    @State private var isVisible = false
 
     private var recorder: any AudioRecording { env.recorder }
 
@@ -30,14 +31,33 @@ struct RecordView: View {
                         .foregroundStyle(VoxlueColor.paperHighlight)
                         .contentTransition(.numericText())
 
-                    WaveformView(
-                        samples: liveSamples.isEmpty ? idleSamples : liveSamples,
-                        tint: recorder.isRecording
-                            ? VoxlueColor.vermillion
-                            : VoxlueColor.darkroomGray
-                    )
+                    // 闲时：TimelineView 推呼吸波，darkroomGray；
+                    // 录音：liveSamples + vermillion，节奏与电平绑定。
+                    // 12fps（0.08s）够呼吸视觉，不浪费 CPU；视图不可见时停掉。
+                    Group {
+                        if isVisible {
+                            TimelineView(.animation(minimumInterval: 0.08)) { context in
+                                WaveformView(
+                                    samples: recorder.isRecording
+                                        ? (liveSamples.isEmpty ? breathingSamples(at: context.date) : liveSamples)
+                                        : breathingSamples(at: context.date),
+                                    tint: recorder.isRecording
+                                        ? VoxlueColor.vermillion
+                                        : VoxlueColor.darkroomGray
+                                )
+                            }
+                        } else {
+                            // 不可见时返回静态占位，省 TimelineView 的 12fps 推送。
+                            WaveformView(
+                                samples: [Float](repeating: 0.07, count: 80),
+                                tint: VoxlueColor.darkroomGray
+                            )
+                        }
+                    }
                     .frame(height: 80)
                     .padding(.horizontal, VoxlueSpacing.xl)
+                    .onAppear { isVisible = true }
+                    .onDisappear { isVisible = false }
 
                     Spacer()
 
@@ -88,8 +108,15 @@ struct RecordView: View {
         }
     }
 
-    /// 未录音时显示的静默声纹占位。
-    private var idleSamples: [Float] { [Float](repeating: 0.06, count: 80) }
+    /// 闲时呼吸声纹 —— 一道极慢的正弦驻波，给暗房一点「在等你」的呼吸感。
+    /// 用 TimelineView 驱动；phase 按时间线性走，sin 把它拍成 0~0.18 之间的低幅波。
+    private func breathingSamples(at date: Date) -> [Float] {
+        let t = date.timeIntervalSinceReferenceDate
+        return (0..<80).map { i in
+            let phase = Double(i) * 0.22 - t * 0.8
+            return Float(0.07 + sin(phase) * 0.05 + sin(phase * 0.5) * 0.04)
+        }
+    }
 
     private func start() {
         Task {

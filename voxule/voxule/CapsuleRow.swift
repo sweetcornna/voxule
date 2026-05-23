@@ -10,7 +10,8 @@ struct CapsuleRow: View {
 
     var body: some View {
         if capsule.state == .buried {
-            NegativeCard(title: displayTitle, meta: metaLine, seal: sealKind) {
+            NegativeCard(title: displayTitle, meta: metaLine,
+                         seal: sealKind, sealDelay: stampDelay) {
                 WaveformView(
                     samples: capsule.waveform.isEmpty
                         ? [Float](repeating: 0.08, count: 64)
@@ -20,7 +21,8 @@ struct CapsuleRow: View {
                 .padding(.horizontal, VoxlueSpacing.lg)
             }
         } else {
-            PhotoCard(title: displayTitle, meta: metaLine, seal: sealKind) {
+            PhotoCard(title: displayTitle, meta: metaLine,
+                      seal: sealKind, sealDelay: stampDelay) {
                 WaveformView(
                     samples: capsule.waveform.isEmpty
                         ? [Float](repeating: 0.08, count: 64)
@@ -30,6 +32,12 @@ struct CapsuleRow: View {
                 .padding(.horizontal, VoxlueSpacing.lg)
             }
         }
+    }
+
+    /// 按 capsule.id 散布的 0~0.2 秒延迟 —— 同屏多张片不会同步盖章，
+    /// 读上去像「逐张冲洗」的级联，而不是一齐 twitch。
+    private var stampDelay: Double {
+        Double(abs(capsule.id.hashValue) % 6) * 0.04
     }
 
     private var displayTitle: String {

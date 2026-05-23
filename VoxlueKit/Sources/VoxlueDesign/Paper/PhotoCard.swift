@@ -6,36 +6,43 @@ public struct PhotoCard<Image: View>: View {
     private let title: String
     private let meta: String
     private let seal: SealStamp.Kind?
+    private let sealDelay: Double
     private let image: Image
 
     /// - Parameters:
     ///   - title: 相片标题（思源宋）。
     ///   - meta: 片基小字 —— 坐标 / 时长 / 天气（Space Mono）。
     ///   - seal: 可选的朱章状态。设了就盖在图像区右上角。
+    ///   - sealDelay: 朱章入场动效延迟。同屏多枚卡片传 staggered 值形成级联。
     ///   - image: 图像区内容，通常是声纹波形视图。
     public init(
         title: String,
         meta: String,
         seal: SealStamp.Kind? = nil,
+        sealDelay: Double = 0,
         @ViewBuilder image: () -> Image
     ) {
         self.title = title
         self.meta = meta
         self.seal = seal
+        self.sealDelay = sealDelay
         self.image = image()
     }
 
     public var body: some View {
         VStack(spacing: 0) {
             // 图像区 —— 深底，相纸里被显影的那块。
+            // 上下加一排胶片孔洞，让相纸看上去是「胶卷剪下来的一段」。
             image
                 .frame(maxWidth: .infinity)
                 .frame(height: 150)
                 .background(VoxlueColor.negativeBlack)
+                .overlay(FilmPerforations(edge: .top))
+                .overlay(FilmPerforations(edge: .bottom))
                 .overlay(alignment: .topTrailing) {
                     if let seal {
-                        SealStamp(seal)
-                            .padding(.top, VoxlueSpacing.sm)
+                        SealStamp(seal, delay: sealDelay)
+                            .padding(.top, FilmPerforations.safeContentInset)
                             .padding(.trailing, VoxlueSpacing.sm)
                     }
                 }
