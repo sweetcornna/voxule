@@ -13,7 +13,7 @@ struct ShelfView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack(alignment: .bottomTrailing) {
+            ZStack(alignment: .bottom) {
                 PaperBackground().ignoresSafeArea()
 
                 Group {
@@ -24,11 +24,11 @@ struct ShelfView: View {
                     }
                 }
 
-                // 玻璃浮动主按钮 —— 「冲一张」录音入口，悬浮在样片墙右下。
+                // 玻璃浮动主按钮 —— 「冲一张」是 App 唯一主操作，水平居中在底部正中，
+                // 与底部玻璃 TabBar 错开位置但视觉上对齐成「行动焦点」。
                 GlassFloatingButton(systemImage: "mic.fill") {
                     isRecording = true
                 }
-                .padding(.trailing, VoxlueSpacing.lg)
                 .padding(.bottom, VoxlueSpacing.lg)
                 .accessibilityLabel("冲一张")
             }
