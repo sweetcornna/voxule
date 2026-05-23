@@ -34,22 +34,40 @@ public struct SealStamp: View {
     }
 
     public var body: some View {
-        Text(kind.text)
-            .font(VoxlueTypography.meta)
-            .tracking(2)
-            .foregroundStyle(VoxlueColor.vermillion)
-            .padding(.horizontal, VoxlueSpacing.sm)
-            .padding(.vertical, VoxlueSpacing.xs)
-            .overlay(
-                RoundedRectangle(cornerRadius: VoxlueRadius.stamp, style: .continuous)
-                    .strokeBorder(VoxlueColor.vermillion, lineWidth: 1.5)
-            )
+        // kind 切换时让旧章淡出、新章从 1.35× 缩落到同一位置 —— 跟入场是同一个 spring，
+        // 视觉上像有人又盖了一遍而不是悄悄换了字。
+        StampFace(kind: kind)
+            .id(kind)
+            .transition(.asymmetric(
+                insertion: .opacity.combined(with: .scale(scale: 1.35)),
+                removal: .opacity
+            ))
+            .animation(.spring(response: 0.4, dampingFraction: 0.65), value: kind)
             // 入场如真的盖章：先抬起 + 偏正、淡，落地缩到 -8° 与 0.88 不透明。
             .scaleEffect(stamped ? 1 : 1.35)
             .rotationEffect(.degrees(stamped ? -8 : 6))
             .opacity(stamped ? 0.88 : 0)
             .voxlueShadow(.stamp)
             .onAppear(perform: stampIn)
+    }
+
+    /// 朱章的「字 + 边框」本体 —— 抽出来是为了让 `.id(kind)` 在 kind 切换时把它当成
+    /// 新视图，触发 transition；外层的入场动画（scaleEffect / rotation / opacity）保持不动。
+    private struct StampFace: View {
+        let kind: Kind
+
+        var body: some View {
+            Text(kind.text)
+                .font(VoxlueTypography.meta)
+                .tracking(2)
+                .foregroundStyle(VoxlueColor.vermillion)
+                .padding(.horizontal, VoxlueSpacing.sm)
+                .padding(.vertical, VoxlueSpacing.xs)
+                .overlay(
+                    RoundedRectangle(cornerRadius: VoxlueRadius.stamp, style: .continuous)
+                        .strokeBorder(VoxlueColor.vermillion, lineWidth: 1.5)
+                )
+        }
     }
 
     private func stampIn() {
