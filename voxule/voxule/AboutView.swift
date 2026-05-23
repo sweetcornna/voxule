@@ -15,8 +15,9 @@ struct AboutView: View {
                     tagline
                     philosophy
                     paletteStrip
+                    // MarginNote 内部已 HStack 左对齐内容；不再外套 maxWidth: .infinity，
+                    // 与 HomeView / ShelfView / CircleListView 等其余落地保持一致。
                     MarginNote("— 这是陪伴，不是提醒事项。")
-                        .frame(maxWidth: .infinity, alignment: .leading)
                     version
                 }
                 .padding(.horizontal, VoxlueSpacing.xl)
@@ -82,6 +83,10 @@ struct AboutView: View {
                                 .font(VoxlueTypography.caption)
                                 .foregroundStyle(VoxlueColor.graphite)
                         }
+                        // VoiceOver 否则会先念 8 个 unlabeled 矩形再念 8 个图注；
+                        // combine 后每色一组「色名」一条朗读。
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel(pair.1)
                     }
                 }
                 .padding(.vertical, VoxlueSpacing.xs)
