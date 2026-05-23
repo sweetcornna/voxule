@@ -28,14 +28,17 @@ public struct PhotoCard<Image: View>: View {
     public var body: some View {
         VStack(spacing: 0) {
             // 图像区 —— 深底，相纸里被显影的那块。
+            // 上下加一排胶片孔洞，让相纸看上去是「胶卷剪下来的一段」。
             image
                 .frame(maxWidth: .infinity)
                 .frame(height: 150)
                 .background(VoxlueColor.negativeBlack)
+                .overlay(FilmPerforations(edge: .top))
+                .overlay(FilmPerforations(edge: .bottom))
                 .overlay(alignment: .topTrailing) {
                     if let seal {
                         SealStamp(seal)
-                            .padding(.top, VoxlueSpacing.sm)
+                            .padding(.top, VoxlueSpacing.md + 4)   // 让朱章避开片孔
                             .padding(.trailing, VoxlueSpacing.sm)
                     }
                 }

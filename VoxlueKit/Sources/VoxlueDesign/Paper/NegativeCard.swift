@@ -25,14 +25,17 @@ public struct NegativeCard<Image: View>: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: VoxlueSpacing.sm) {
             // 影像区 —— 与 PhotoCard 150pt 对齐，混排时行高一致。
+            // 反相态用 darkroomGray 给片孔色，留在深底上仍可识别。
             image
                 .frame(maxWidth: .infinity)
                 .frame(height: 150)
                 .opacity(0.55)               // 未显影 —— 影像偏淡。
+                .overlay(FilmPerforations(edge: .top, holeColor: VoxlueColor.darkroomGray))
+                .overlay(FilmPerforations(edge: .bottom, holeColor: VoxlueColor.darkroomGray))
                 .overlay(alignment: .topTrailing) {
                     if let seal {
                         SealStamp(seal)
-                            .padding(.top, VoxlueSpacing.sm)
+                            .padding(.top, VoxlueSpacing.md + 4)
                             .padding(.trailing, VoxlueSpacing.sm)
                     }
                 }
