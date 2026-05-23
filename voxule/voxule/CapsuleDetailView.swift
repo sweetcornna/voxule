@@ -14,6 +14,8 @@ struct CapsuleDetailView: View {
 
     @State private var loaded = false
     @State private var loadFailed = false
+    @State private var ringPulse = false
+    @State private var separatorPulse = false
 
     private var player: any AudioPlaying { env.player }
 
@@ -72,33 +74,89 @@ struct CapsuleDetailView: View {
 
     private var playbackControls: some View {
         PaperCard {
-            VStack(spacing: VoxlueSpacing.md) {
-                Slider(
-                    value: Binding(
-                        get: { player.progress },
-                        set: { player.seek(toProgress: $0) }
-                    ),
-                    in: 0...1
-                )
-                .tint(VoxlueColor.vermillion)
-                HStack {
-                    Text(progressTimeString)
-                    Spacer()
-                    Text(durationString)
-                }
-                .font(VoxlueTypography.meta)
-                .foregroundStyle(VoxlueColor.graphite)
+            VStack(spacing: VoxlueSpacing.lg) {
+                // 滑杆区 —— 进度 + 双字体时间码 + 上下文批注。
+                VStack(spacing: VoxlueSpacing.sm) {
+                    Slider(
+                        value: Binding(
+                            get: { player.progress },
+                            set: { player.seek(toProgress: $0) }
+                        ),
+                        in: 0...1
+                    )
+                    .tint(VoxlueColor.vermillion)
 
-                Button {
-                    togglePlayback()
-                } label: {
-                    Image(systemName: player.isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                        .font(.system(size: 64))
-                        .foregroundStyle(VoxlueColor.vermillion)
+                    HStack(spacing: VoxlueSpacing.sm) {
+                        // 左：Crimson Pro 计数器 —— 像胶片片头的西文计时。
+                        Text(progressTimeString)
+                            .font(VoxlueTypography.serifLatin(.body))
+                            .foregroundStyle(VoxlueColor.ink)
+                        // 播放时朱红圆点呼吸 —— 中段分隔。
+                        if player.isPlaying {
+                            Circle()
+                                .fill(VoxlueColor.vermillion)
+                                .frame(width: 5, height: 5)
+                                .opacity(separatorPulse ? 1.0 : 0.3)
+                                .animation(
+                                    .easeInOut(duration: 0.8).repeatForever(autoreverses: true),
+                                    value: separatorPulse
+                                )
+                        }
+                        Spacer()
+                        // 右：Space Mono 时长 —— 元数据冷调。
+                        Text(durationString)
+                            .font(VoxlueTypography.meta)
+                            .foregroundStyle(VoxlueColor.graphite)
+                    }
+
+                    if let note = playbackMarginNote {
+                        MarginNote(note)
+                            .padding(.top, VoxlueSpacing.xs)
+                    }
                 }
-                .disabled(!loaded)
-                .accessibilityLabel(player.isPlaying ? "暂停" : "播放")
+
+                // 按钮区 —— 朱红脉冲环包裹的播放/暂停。
+                ZStack {
+                    Circle()
+                        .stroke(
+                            VoxlueColor.vermillion.opacity(player.isPlaying ? 0.35 : 0.18),
+                            lineWidth: 2
+                        )
+                        .frame(width: 64, height: 64)
+                        .scaleEffect(ringPulse ? 1.06 : 1.0)
+                        .animation(
+                            player.isPlaying
+                                ? .easeInOut(duration: 0.9).repeatForever(autoreverses: true)
+                                : .easeInOut(duration: 0.2),
+                            value: ringPulse
+                        )
+
+                    Button {
+                        togglePlayback()
+                    } label: {
+                        Image(systemName: player.isPlaying ? "pause.circle.fill" : "play.circle.fill")
+                            .font(.system(size: 64))
+                            .foregroundStyle(VoxlueColor.vermillion)
+                    }
+                    .disabled(!loaded)
+                    .accessibilityLabel(player.isPlaying ? "暂停" : "播放")
+                }
             }
+        }
+        .onChange(of: player.isPlaying) { _, playing in
+            ringPulse = playing
+            separatorPulse = playing
+        }
+    }
+
+    /// 滑杆下的上下文批注：播放中 / 听到一半 / 否则隐藏。
+    private var playbackMarginNote: String? {
+        if player.isPlaying {
+            return "正在听 →"
+        } else if loaded && player.progress > 0 {
+            return "听到一半，可以接着"
+        } else {
+            return nil
         }
     }
 
