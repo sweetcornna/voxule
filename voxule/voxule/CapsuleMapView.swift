@@ -70,6 +70,10 @@ struct CapsuleMapView: View {
                                     lineWidth: 1
                                 )
                             )
+                            // HIG 命中区 ≥ 44pt；ic 自身 ~28pt + 8 padding ~44，
+                            // 显式拉一下 + contentShape 保险。
+                            .frame(minWidth: 44, minHeight: 44)
+                            .contentShape(Circle())
                     }
                     .buttonStyle(.plain)
                 }
@@ -77,17 +81,9 @@ struct CapsuleMapView: View {
         }
         .mapStyle(.standard(elevation: .flat))
         .navigationTitle("埋下的地方")
-        // 点空白处收起气泡 —— 一个透明全屏背板，仅在有选中时存在，
-        // 不挡住 pin（pin 是地图原生子视图，绘制在 Map 内部，背板在 .overlay
-        // 层级之上但与 pin 不冲突，因为 pin 的 Button 命中区在 Annotation 里）。
-        .overlay {
-            if selectedPinID != nil {
-                Color.clear
-                    .contentShape(Rectangle())
-                    .onTapGesture { selectedPinID = nil }
-                    .allowsHitTesting(true)
-            }
-        }
+        // 不再用全屏 Color.clear 背板做「点空白收起」—— 它会吃掉 Map 自己的
+        // pan / zoom 手势，地图在气泡打开期间瘫痪。
+        // 收起入口：同一枚 pin 二次点击（toggle）+ 气泡右上 ✕ + 「看这枚」push 时清空。
         .overlay(alignment: .bottom) {
             if pins.isEmpty {
                 Text("还没有埋在某个地点的相")
@@ -106,7 +102,8 @@ struct CapsuleMapView: View {
                let capsule = capsules.first(where: { $0.id == id }) {
                 PinDetailBubble(
                     capsule: capsule,
-                    onClose: { selectedPinID = nil }
+                    onClose: { selectedPinID = nil },
+                    onOpenDetail: { selectedPinID = nil }
                 )
                 .padding(.horizontal, VoxlueSpacing.lg)
                 .padding(.bottom, VoxlueSpacing.xl)
@@ -122,6 +119,8 @@ struct CapsuleMapView: View {
 private struct PinDetailBubble: View {
     let capsule: VoxlueData.Capsule
     let onClose: () -> Void
+    /// push 进详情时也要清掉外层选中状态 —— 否则 back 回来气泡还杵着。
+    var onOpenDetail: () -> Void = {}
 
     var body: some View {
         PaperCard {
@@ -159,6 +158,11 @@ private struct PinDetailBubble: View {
                 }
                 .buttonStyle(.plain)
                 .padding(.top, VoxlueSpacing.xs)
+                // 进详情同时清掉 selectedPinID：用 simultaneousGesture 不抢 navigation，
+                // back 回来时气泡不会再杵着。
+                .simultaneousGesture(
+                    TapGesture().onEnded { onOpenDetail() }
+                )
             }
         }
     }
