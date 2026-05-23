@@ -9,6 +9,18 @@ struct RootTabView: View {
     /// 触发引擎依赖容器；预览未注入时为 nil（不影响渲染）。
     @Environment(AppDependencies.self) private var dependencies: AppDependencies?
 
+    /// 全量拉一次胶囊，在内存里数 developing 数量。
+    /// 不走 #Predicate：state 是 CapsuleState 枚举（rawValue: String），
+    /// 直接在谓词里写 `.developing` 会触发 SwiftData 谓词解析的边角坑，
+    /// 计数 UI 数据量小，内存过滤更直观也更稳。
+    @Query private var capsules: [VoxlueData.Capsule]
+
+    /// 浮现待听数 —— 即「有几枚胶囊浮上来了，正等你按下播放」。
+    /// 这是暗房隐喻里的「未读邮件灯」：照片已经显影，等你来看。
+    private var developingCount: Int {
+        capsules.filter { $0.state == .developing }.count
+    }
+
     var body: some View {
         TabView {
             Tab("首页", systemImage: "mic.fill") {
@@ -17,6 +29,7 @@ struct RootTabView: View {
             Tab("样片墙", systemImage: "rectangle.stack") {
                 ShelfView()
             }
+            .badge(developingCount)
             Tab("地图", systemImage: "map") {
                 NavigationStack { CapsuleMapView() }
             }
