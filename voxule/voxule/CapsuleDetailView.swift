@@ -41,9 +41,9 @@ struct CapsuleDetailView: View {
         }
     }
 
-    /// 顶部相片 —— 用 PhotoCard 包声纹波形，朱章盖在右上。
+    /// 顶部相片 —— 用 PhotoCard 包声纹波形，朱章盖在右上（PhotoCard 内部对齐）。
     private var photoHero: some View {
-        PhotoCard(title: displayTitle, meta: headerMeta) {
+        PhotoCard(title: displayTitle, meta: headerMeta, seal: sealKind) {
             WaveformView(
                 samples: capsule.waveform.isEmpty
                     ? [Float](repeating: 0.1, count: 80)
@@ -52,11 +52,6 @@ struct CapsuleDetailView: View {
                 tint: VoxlueColor.paperHighlight
             )
             .padding(.horizontal, VoxlueSpacing.lg)
-        }
-        .overlay(alignment: .topTrailing) {
-            SealStamp(sealKind)
-                .padding(.top, VoxlueSpacing.sm)
-                .padding(.trailing, VoxlueSpacing.sm)
         }
     }
 
@@ -161,7 +156,7 @@ struct CapsuleDetailView: View {
         if capsule.duration > 0 {
             parts.append(durationString)
         }
-        parts.append(stateLabel)
+        parts.append(capsule.state.displayLabel)
         return parts.joined(separator: " · ")
     }
 
@@ -181,15 +176,6 @@ struct CapsuleDetailView: View {
         case .place: "地点锁"
         case .date: "时间锁"
         case .mood: "情绪锁"
-        }
-    }
-
-    private var stateLabel: String {
-        switch capsule.state {
-        case .buried: "已埋下"
-        case .developing: "显影中"
-        case .developed: "等你听"
-        case .opened: "已开启"
         }
     }
 

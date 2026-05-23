@@ -7,7 +7,7 @@ struct CapsuleRow: View {
     let capsule: VoxlueData.Capsule
 
     var body: some View {
-        PhotoCard(title: displayTitle, meta: metaLine) {
+        PhotoCard(title: displayTitle, meta: metaLine, seal: sealKind) {
             // 图像区 —— 声纹波形，黑底白线。
             WaveformView(
                 samples: capsule.waveform.isEmpty
@@ -16,12 +16,6 @@ struct CapsuleRow: View {
                 tint: VoxlueColor.paperHighlight
             )
             .padding(.horizontal, VoxlueSpacing.lg)
-        }
-        .overlay(alignment: .topTrailing) {
-            // 朱章盖在相片右上 —— 让状态一眼可读。
-            SealStamp(sealKind)
-                .padding(.top, VoxlueSpacing.sm)
-                .padding(.trailing, VoxlueSpacing.sm)
         }
     }
 

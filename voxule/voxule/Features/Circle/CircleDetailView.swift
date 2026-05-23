@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import VoxlueData
+import VoxlueDesign
 import VoxlueServices
 
 /// 一个声音圈的详情 —— 成员、圈内胶囊、发邀请。
@@ -19,50 +20,77 @@ struct CircleDetailView: View {
 
     var body: some View {
         List {
-            // 圈内胶囊。
-            Section("圈里的声音") {
+            Section {
                 CircleCapsulesList(circleID: circle.id)
+            } header: {
+                sectionHeader("圈里的声音")
             }
 
-            // 成员。
-            Section("成员（\(members.count)）") {
+            Section {
                 ForEach(members) { member in
                     HStack {
                         Text(member.name.isEmpty ? "（无名）" : member.name)
+                            .font(VoxlueTypography.serifBody)
+                            .foregroundStyle(VoxlueColor.ink)
                         Spacer()
                         Text(member.role == .owner ? "圈主" : "成员")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .font(VoxlueTypography.meta)
+                            .foregroundStyle(VoxlueColor.graphite)
                     }
                 }
+            } header: {
+                sectionHeader("成员（\(members.count)）")
             }
 
-            // 发邀请。
             Section {
                 Button {
                     makeInvitation()
                 } label: {
                     Label("邀请新成员", systemImage: "person.crop.circle.badge.plus")
+                        .font(VoxlueTypography.serifBody)
+                        .foregroundStyle(VoxlueColor.vermillion)
                 }
                 .disabled(isMakingInvitation)
 
                 if let errorText {
-                    Text(errorText)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
+                    // 错误用 ink 主色 + 朱红警告 icon 区分，避免与朱红 CTA 抢色。
+                    Label {
+                        Text(errorText)
+                            .font(VoxlueTypography.caption)
+                            .foregroundStyle(VoxlueColor.ink)
+                    } icon: {
+                        Image(systemName: "exclamationmark.circle")
+                            .foregroundStyle(VoxlueColor.vermillion)
+                    }
                 }
             } footer: {
                 Text("生成一个链接，用 iMessage 或任意方式发给对方；对方点开即可加入。")
+                    .font(VoxlueTypography.caption)
+                    .foregroundStyle(VoxlueColor.darkroomGray)
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(VoxlueColor.paper.ignoresSafeArea())
         .navigationTitle(circle.name.isEmpty ? "声音圈" : circle.name)
         .navigationBarTitleDisplayMode(.inline)
         .overlay {
-            if isMakingInvitation { ProgressView("正在生成邀请…") }
+            if isMakingInvitation {
+                ProgressView("正在生成邀请…")
+                    .tint(VoxlueColor.vermillion)
+                    .padding(VoxlueSpacing.lg)
+                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: VoxlueRadius.card))
+            }
         }
         .sheet(item: $invitation) { invitation in
             ShareInvitationSheet(url: invitation.url)
         }
+    }
+
+    private func sectionHeader(_ text: String) -> some View {
+        Text(text)
+            .font(VoxlueTypography.caption)
+            .foregroundStyle(VoxlueColor.graphite)
+            .textCase(nil)
     }
 
     private func makeInvitation() {
@@ -95,15 +123,17 @@ private struct CircleCapsulesList: View {
     var body: some View {
         if capsules.isEmpty {
             Text("圈里还没有声音。装裱一枚胶囊时选这个圈，它就会出现在这里。")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+                .font(VoxlueTypography.caption)
+                .foregroundStyle(VoxlueColor.graphite)
         } else {
             ForEach(capsules) { capsule in
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: VoxlueSpacing.xs) {
                     Text(capsule.title.isEmpty ? "（无题）" : capsule.title)
-                    Text("\(capsule.authorName.isEmpty ? "某人" : capsule.authorName) · \(capsule.state.rawValue)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(VoxlueTypography.serifBody)
+                        .foregroundStyle(VoxlueColor.ink)
+                    Text("\(capsule.authorName.isEmpty ? "某人" : capsule.authorName) · \(capsule.state.displayLabel)")
+                        .font(VoxlueTypography.meta)
+                        .foregroundStyle(VoxlueColor.graphite)
                 }
             }
         }

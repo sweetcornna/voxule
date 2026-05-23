@@ -5,19 +5,23 @@ import SwiftUI
 public struct PhotoCard<Image: View>: View {
     private let title: String
     private let meta: String
+    private let seal: SealStamp.Kind?
     private let image: Image
 
     /// - Parameters:
     ///   - title: 相片标题（思源宋）。
     ///   - meta: 片基小字 —— 坐标 / 时长 / 天气（Space Mono）。
+    ///   - seal: 可选的朱章状态。设了就盖在图像区右上角。
     ///   - image: 图像区内容，通常是声纹波形视图。
     public init(
         title: String,
         meta: String,
+        seal: SealStamp.Kind? = nil,
         @ViewBuilder image: () -> Image
     ) {
         self.title = title
         self.meta = meta
+        self.seal = seal
         self.image = image()
     }
 
@@ -28,6 +32,13 @@ public struct PhotoCard<Image: View>: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 150)
                 .background(VoxlueColor.negativeBlack)
+                .overlay(alignment: .topTrailing) {
+                    if let seal {
+                        SealStamp(seal)
+                            .padding(.top, VoxlueSpacing.sm)
+                            .padding(.trailing, VoxlueSpacing.sm)
+                    }
+                }
 
             // 片基白条 —— 印标题与元数据。
             VStack(alignment: .leading, spacing: VoxlueSpacing.xs) {

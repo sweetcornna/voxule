@@ -1,5 +1,6 @@
 import SwiftUI
 import BackgroundTasks
+import VoxlueDesign
 
 /// 情绪胶囊浮现频率（架构文档 §6）。用户可调，「关」则 agent 不再主动浮现。
 enum CadenceSetting: String, CaseIterable, Identifiable {
@@ -70,27 +71,35 @@ struct CadenceSettingsView: View {
                         }
                     } label: {
                         HStack(alignment: .firstTextBaseline) {
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: VoxlueSpacing.xs) {
                                 Text(cadence.label)
-                                    .foregroundStyle(.primary)
+                                    .font(VoxlueTypography.serifBody)
+                                    .foregroundStyle(VoxlueColor.ink)
                                 Text(cadence.caption)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .font(VoxlueTypography.caption)
+                                    .foregroundStyle(VoxlueColor.graphite)
                             }
                             Spacer()
                             if cadence == selection {
                                 Image(systemName: "checkmark")
-                                    .foregroundStyle(.tint)
+                                    .foregroundStyle(VoxlueColor.vermillion)
                             }
                         }
                     }
                 }
             } header: {
                 Text("浮现频率")
+                    .font(VoxlueTypography.caption)
+                    .foregroundStyle(VoxlueColor.graphite)
+                    .textCase(nil)
             } footer: {
                 Text("情绪胶囊由陪伴 agent 在安静时刻为你浮现。这是陪伴，不是提醒事项 —— 你随时可以调慢，或关掉。")
+                    .font(VoxlueTypography.caption)
+                    .foregroundStyle(VoxlueColor.darkroomGray)
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(VoxlueColor.paper.ignoresSafeArea())
         .navigationTitle("浮现")
     }
 }

@@ -54,6 +54,8 @@ struct FramingView: View {
             }
 
             Section {
+                // Picker / DatePicker 沿用 App 级 tint —— RootTabView 已设 vermillion，
+                // 这里不重复显式声明，与本 PR 其他 Form 屏保持一致。
                 Picker("锁", selection: $lockKind) {
                     Text("地点锁").tag(Lock.Kind.place)
                     Text("时间锁").tag(Lock.Kind.date)
