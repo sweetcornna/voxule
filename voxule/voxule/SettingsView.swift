@@ -28,6 +28,16 @@ struct SettingsView: View {
                     .foregroundStyle(VoxlueColor.darkroomGray)
             }
 
+            Section {
+                NavigationLink {
+                    AboutView()
+                } label: {
+                    settingsRow(icon: "info.circle", text: "关于 voxlue")
+                }
+            } header: {
+                sectionHeader("关于")
+            }
+
             #if DEBUG
             Section {
                 NavigationLink {
