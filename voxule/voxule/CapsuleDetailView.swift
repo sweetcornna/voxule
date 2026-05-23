@@ -41,9 +41,9 @@ struct CapsuleDetailView: View {
         }
     }
 
-    /// 顶部相片 —— 用 PhotoCard 包声纹波形，朱章盖在右上。
+    /// 顶部相片 —— 用 PhotoCard 包声纹波形，朱章盖在右上（PhotoCard 内部对齐）。
     private var photoHero: some View {
-        PhotoCard(title: displayTitle, meta: headerMeta) {
+        PhotoCard(title: displayTitle, meta: headerMeta, seal: sealKind) {
             WaveformView(
                 samples: capsule.waveform.isEmpty
                     ? [Float](repeating: 0.1, count: 80)
@@ -52,11 +52,6 @@ struct CapsuleDetailView: View {
                 tint: VoxlueColor.paperHighlight
             )
             .padding(.horizontal, VoxlueSpacing.lg)
-        }
-        .overlay(alignment: .topTrailing) {
-            SealStamp(sealKind)
-                .padding(.top, VoxlueSpacing.sm)
-                .padding(.trailing, VoxlueSpacing.sm)
         }
     }
 

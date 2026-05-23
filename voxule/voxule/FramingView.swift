@@ -60,10 +60,12 @@ struct FramingView: View {
                     Text("情绪锁").tag(Lock.Kind.mood)
                 }
                 .pickerStyle(.segmented)
+                .tint(VoxlueColor.vermillion)
                 if lockKind == .date {
                     DatePicker("到这天显影", selection: $dateLockTarget,
                                in: Date()..., displayedComponents: [.date])
                         .font(VoxlueTypography.serifBody)
+                        .tint(VoxlueColor.vermillion)
                 }
                 Text(lockHint)
                     .font(VoxlueTypography.caption)
@@ -77,6 +79,7 @@ struct FramingView: View {
                     Text("自己").tag(Recipient.me)
                     Text("声音圈").tag(Recipient.circle)
                 }
+                .tint(VoxlueColor.vermillion)
                 Text("收件人埋下时定死，之后不可改。")
                     .font(VoxlueTypography.caption)
                     .foregroundStyle(VoxlueColor.graphite)

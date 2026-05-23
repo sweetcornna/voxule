@@ -1,4 +1,5 @@
 import SwiftUI
+import VoxlueDesign
 import VoxlueServices
 
 /// HealthKit 授权与隐私说明界面。
@@ -12,54 +13,66 @@ struct HealthAuthorizationView: View {
     @State private var requesting = false
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                Text("让陪伴恰到好处")
-                    .font(.title2.weight(.semibold))
+        ZStack {
+            VoxlueColor.paper.ignoresSafeArea()
 
-                Text("voxlue 想读一点你的状态 —— 心情、心率与睡眠 —— 只为在一个合适的安静时刻，把你埋下的某段声音轻轻递到你面前。")
-                    .foregroundStyle(.secondary)
+            ScrollView {
+                VStack(alignment: .leading, spacing: VoxlueSpacing.xl) {
+                    Text("让陪伴恰到好处")
+                        .font(VoxlueTypography.heading)
+                        .foregroundStyle(VoxlueColor.ink)
 
-                VStack(alignment: .leading, spacing: 12) {
-                    privacyRow(icon: "iphone",
-                               text: "原始数据全程留在你的设备上，永不上传。")
-                    privacyRow(icon: "wand.and.sparkles",
-                               text: "上网的只是一份抽象摘要，无法回指到你的任何具体读数。")
-                    privacyRow(icon: "hand.raised",
-                               text: "这是陪伴，不做任何健康判断。你随时可以在系统设置里收回授权。")
-                }
-                .padding()
-                .background(.quaternary, in: RoundedRectangle(cornerRadius: 12))
+                    Text("voxlue 想读一点你的状态 —— 心情、心率与睡眠 —— 只为在一个合适的安静时刻，把你埋下的某段声音轻轻递到你面前。")
+                        .font(VoxlueTypography.serifBody)
+                        .foregroundStyle(VoxlueColor.graphite)
 
-                Button {
-                    Task {
-                        requesting = true
-                        let granted = await health.requestAuthorization()
-                        requesting = false
-                        onFinish(granted)
+                    PaperCard {
+                        VStack(alignment: .leading, spacing: VoxlueSpacing.md) {
+                            privacyRow(icon: "iphone",
+                                       text: "原始数据全程留在你的设备上，永不上传。")
+                            privacyRow(icon: "wand.and.sparkles",
+                                       text: "上网的只是一份抽象摘要，无法回指到你的任何具体读数。")
+                            privacyRow(icon: "hand.raised",
+                                       text: "这是陪伴，不做任何健康判断。你随时可以在系统设置里收回授权。")
+                        }
                     }
-                } label: {
-                    Text(requesting ? "请求中…" : "继续")
+
+                    Button {
+                        Task {
+                            requesting = true
+                            let granted = await health.requestAuthorization()
+                            requesting = false
+                            onFinish(granted)
+                        }
+                    } label: {
+                        Text(requesting ? "请求中…" : "继续")
+                            .font(VoxlueTypography.serifBody)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, VoxlueSpacing.xs)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(VoxlueColor.vermillion)
+                    .disabled(requesting)
+
+                    Button("以后再说") { onFinish(false) }
+                        .font(VoxlueTypography.caption)
+                        .foregroundStyle(VoxlueColor.graphite)
                         .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(requesting)
-
-                Button("以后再说") { onFinish(false) }
-                    .frame(maxWidth: .infinity)
+                .padding(VoxlueSpacing.lg)
             }
-            .padding()
         }
         .navigationTitle("陪伴授权")
     }
 
     private func privacyRow(icon: String, text: String) -> some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: VoxlueSpacing.md) {
             Image(systemName: icon)
-                .foregroundStyle(.tint)
+                .foregroundStyle(VoxlueColor.vermillion)
                 .frame(width: 24)
             Text(text)
-                .font(.callout)
+                .font(VoxlueTypography.serifBody)
+                .foregroundStyle(VoxlueColor.ink)
         }
     }
 }

@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 import MapKit
 import VoxlueData
+import VoxlueDesign
 
 /// 地图视图 —— 标出已埋下地点锁胶囊与正在显影的点。
 /// 暗房美学：埋下点是一枚暗的相角标记，显影中点是高亮的朱色标记。
@@ -36,12 +37,16 @@ struct CapsuleMapView: View {
         Map {
             ForEach(pins) { pin in
                 Annotation(pin.title, coordinate: pin.coordinate) {
+                    // 已埋下：暗房灰相机标；显影中：朱红相片标。
                     Image(systemName: pin.isDeveloping
                           ? "photo.fill" : "mappin.circle")
-                        .font(.title2)
-                        .foregroundStyle(pin.isDeveloping ? .red : .secondary)
-                        .padding(6)
-                        .background(.thinMaterial, in: Circle())
+                        .font(.title3)
+                        .foregroundStyle(pin.isDeveloping
+                                         ? VoxlueColor.vermillion
+                                         : VoxlueColor.graphite)
+                        .padding(VoxlueSpacing.xs)
+                        .background(VoxlueColor.paperHighlight, in: Circle())
+                        .voxlueShadow(.stamp)
                 }
             }
         }
@@ -50,11 +55,14 @@ struct CapsuleMapView: View {
         .overlay(alignment: .bottom) {
             if pins.isEmpty {
                 Text("还没有埋在某个地点的相")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .padding(8)
-                    .background(.thinMaterial, in: Capsule())
-                    .padding(.bottom, 24)
+                    .font(VoxlueTypography.caption)
+                    .foregroundStyle(VoxlueColor.graphite)
+                    .padding(.horizontal, VoxlueSpacing.md)
+                    .padding(.vertical, VoxlueSpacing.sm)
+                    .background(VoxlueColor.paperHighlight,
+                                in: RoundedRectangle(cornerRadius: VoxlueRadius.glass))
+                    .voxlueShadow(.paper)
+                    .padding(.bottom, VoxlueSpacing.xl)
             }
         }
     }

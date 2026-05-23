@@ -2,6 +2,7 @@
 import SwiftUI
 import SwiftData
 import VoxlueData
+import VoxlueDesign
 import VoxlueServices
 
 /// Dev 工具菜单 —— 仅 DEBUG 构建可见，挂在 `SettingsView` 底部。
@@ -83,6 +84,8 @@ struct DevToolsView: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(VoxlueColor.paper.ignoresSafeArea())
         .navigationTitle("Dev 工具")
         .alert("清空全部胶囊与圈？", isPresented: $confirmingWipe) {
             Button("清空", role: .destructive) {

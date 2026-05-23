@@ -1,4 +1,5 @@
 import SwiftUI
+import VoxlueDesign
 import VoxlueServices
 
 /// 接受声音圈邀请的落地页 —— 由 DeepLinkRouter.acceptance 驱动。
@@ -7,44 +8,55 @@ struct AcceptInvitationView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        VStack(spacing: 24) {
-            switch router.acceptance {
-            case .idle:
-                Color.clear
+        ZStack {
+            VoxlueColor.paper.ignoresSafeArea()
 
-            case .accepting:
-                ProgressView()
-                Text("正在把你请进这个声音圈…")
-                    .font(.headline)
+            VStack(spacing: VoxlueSpacing.xl) {
+                switch router.acceptance {
+                case .idle:
+                    Color.clear
 
-            case .accepted:
-                Image(systemName: "checkmark.seal")
-                    .font(.system(size: 56))
-                    .foregroundStyle(.green)
-                Text("你已加入这个声音圈")
-                    .font(.title3.weight(.semibold))
-                Text("圈里的声音会慢慢同步到你这边。")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                Button("好的") { dismiss() }
-                    .buttonStyle(.borderedProminent)
+                case .accepting:
+                    ProgressView()
+                        .tint(VoxlueColor.vermillion)
+                    Text("正在把你请进这个声音圈…")
+                        .font(VoxlueTypography.serifBody)
+                        .foregroundStyle(VoxlueColor.ink)
 
-            case .failed(let reason):
-                Image(systemName: "xmark.octagon")
-                    .font(.system(size: 56))
-                    .foregroundStyle(.red)
-                Text("没能加入")
-                    .font(.title3.weight(.semibold))
-                Text(reason)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                Button("关闭") { dismiss() }
-                    .buttonStyle(.bordered)
+                case .accepted:
+                    Image(systemName: "checkmark.seal")
+                        .font(.system(size: 56))
+                        .foregroundStyle(VoxlueColor.vermillion)
+                    Text("你已加入这个声音圈")
+                        .font(VoxlueTypography.heading)
+                        .foregroundStyle(VoxlueColor.ink)
+                    Text("圈里的声音会慢慢同步到你这边。")
+                        .font(VoxlueTypography.caption)
+                        .foregroundStyle(VoxlueColor.graphite)
+                        .multilineTextAlignment(.center)
+                    Button("好的") { dismiss() }
+                        .font(VoxlueTypography.serifBody)
+                        .buttonStyle(.borderedProminent)
+                        .tint(VoxlueColor.vermillion)
+
+                case .failed(let reason):
+                    Image(systemName: "xmark.octagon")
+                        .font(.system(size: 56))
+                        .foregroundStyle(VoxlueColor.darkroomGray)
+                    Text("没能加入")
+                        .font(VoxlueTypography.heading)
+                        .foregroundStyle(VoxlueColor.ink)
+                    Text(reason)
+                        .font(VoxlueTypography.caption)
+                        .foregroundStyle(VoxlueColor.graphite)
+                        .multilineTextAlignment(.center)
+                    Button("关闭") { dismiss() }
+                        .font(VoxlueTypography.serifBody)
+                        .foregroundStyle(VoxlueColor.graphite)
+                }
             }
+            .padding(VoxlueSpacing.xxl)
         }
-        .padding(40)
         .presentationDetents([.medium])
     }
 }

@@ -29,10 +29,15 @@ struct voxuleApp: App {
     /// 避免顺手把用户 iCloud 私有库的真胶囊也一并删掉。
     @MainActor static private(set) var isCloudKitMirrored = false
 
-    init() {
-        // 自定义字体（Crimson Pro · 思源宋 · Space Mono · Caveat）须在 App 启动时注册一次，
-        // 否则 VoxlueTypography 取出来的 Font.custom 会回退到系统字体。
+    /// 自定义字体（Crimson Pro · 思源宋 · Space Mono · Caveat）注册一次性副作用。
+    /// 用 static let 而不是在 init 里调 —— 进程级状态归进程级初始化，
+    /// SwiftUI Preview / 单测重新实例化 App 时也不会重复跑。
+    private static let _fontsRegistered: Void = {
         VoxlueFontRegistrar.registerAll()
+    }()
+
+    init() {
+        _ = Self._fontsRegistered
 
         // 优先用生产配置 —— 镜像到 CloudKit 私有库。
         // 若 CloudKit 不可用（未登录 iCloud、缺少能力配置等），降级为纯本地存储。
