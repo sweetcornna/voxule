@@ -21,6 +21,8 @@ struct FramingView: View {
     /// 选「给声音圈」时锁定的圈 id。recipient 切回「自己」时清空。
     @State private var selectedCircleID: UUID?
     @State private var saveFailed = false
+    /// 「埋下」后短暂停留 0.7s 的盖章仪式 —— 让落地的瞬间有「装裱完成」的实感。
+    @State private var isBurying = false
 
     var body: some View {
         Form {
@@ -101,6 +103,26 @@ struct FramingView: View {
         }
         .scrollContentBackground(.hidden)
         .background(VoxlueColor.paper.ignoresSafeArea())
+        .overlay {
+            // 0.7s 的盖章仪式 —— 表单变暗、纸卡居中浮上、朱章自带 spring 落定。
+            // 数据已先于此 overlay 写库，所以 onBuried 怎么回调都不会丢数据。
+            if isBurying {
+                ZStack {
+                    VoxlueColor.paper
+                        .opacity(0.92)
+                        .ignoresSafeArea()
+                    PaperCard {
+                        VStack(spacing: VoxlueSpacing.md) {
+                            SealStamp(.buried)
+                            MarginNote("一段声音，已经埋下。")
+                        }
+                    }
+                    .padding(.horizontal, VoxlueSpacing.xl)
+                }
+                .transition(.opacity.combined(with: .scale(scale: 0.95).combined(with: .opacity)))
+            }
+        }
+        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: isBurying)
         .navigationTitle("装裱")
         .navigationBarTitleDisplayMode(.inline)
         .onChange(of: recipient) { _, new in
@@ -175,11 +197,27 @@ struct FramingView: View {
         )
         do {
             try CapsuleStore(context: context).add(capsule)
-            onBuried()
+            // UI 测试环境下跳过 0.7s 仪式 —— 测试只给 0.8s buffer，且无须再演一次盖章。
+            if Self.skipsCeremony {
+                onBuried()
+                return
+            }
+            isBurying = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+                onBuried()
+            }
         } catch {
             saveFailed = true
         }
     }
+
+    /// UI 测试（`-uiTestFakeAudio`）或 XCTest 进程下跳过盖章仪式，
+    /// 让 `testRecordBuryPlayMainLoop` 的 0.8s buffer 留有富余。
+    private static let skipsCeremony: Bool = {
+        let info = ProcessInfo.processInfo
+        return info.arguments.contains("-uiTestFakeAudio")
+            || info.environment["XCTestSessionIdentifier"] != nil
+    }()
 }
 
 #Preview {
