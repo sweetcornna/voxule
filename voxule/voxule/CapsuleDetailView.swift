@@ -14,8 +14,6 @@ struct CapsuleDetailView: View {
 
     @State private var loaded = false
     @State private var loadFailed = false
-    @State private var ringPulse = false
-    @State private var separatorPulse = false
 
     private var player: any AudioPlaying { env.player }
 
@@ -92,15 +90,17 @@ struct CapsuleDetailView: View {
                             .font(VoxlueTypography.serifLatin(.body))
                             .foregroundStyle(VoxlueColor.ink)
                         // 播放时朱红圆点呼吸 —— 中段分隔。
+                        // phaseAnimator 自动在 phases 间无限循环；不需要外面手动反复
+                        // toggle @State 才能 repeatForever 生效（这是原写法的 bug）。
                         if player.isPlaying {
                             Circle()
                                 .fill(VoxlueColor.vermillion)
                                 .frame(width: 5, height: 5)
-                                .opacity(separatorPulse ? 1.0 : 0.3)
-                                .animation(
-                                    .easeInOut(duration: 0.8).repeatForever(autoreverses: true),
-                                    value: separatorPulse
-                                )
+                                .phaseAnimator([false, true]) { content, phase in
+                                    content.opacity(phase ? 1.0 : 0.3)
+                                } animation: { _ in
+                                    .easeInOut(duration: 0.8)
+                                }
                         }
                         Spacer()
                         // 右：Space Mono 时长 —— 元数据冷调。
@@ -116,6 +116,8 @@ struct CapsuleDetailView: View {
                 }
 
                 // 按钮区 —— 朱红脉冲环包裹的播放/暂停。
+                // 用 phaseAnimator 在 [false, true] 间循环，scale 在 1.0 ↔ 1.12 之间呼吸；
+                // 仅在 isPlaying 时让 scale 落到 phase 上，否则强制回 1.0。
                 ZStack {
                     Circle()
                         .stroke(
@@ -123,13 +125,11 @@ struct CapsuleDetailView: View {
                             lineWidth: 2
                         )
                         .frame(width: 64, height: 64)
-                        .scaleEffect(ringPulse ? 1.06 : 1.0)
-                        .animation(
-                            player.isPlaying
-                                ? .easeInOut(duration: 0.9).repeatForever(autoreverses: true)
-                                : .easeInOut(duration: 0.2),
-                            value: ringPulse
-                        )
+                        .phaseAnimator([false, true]) { content, phase in
+                            content.scaleEffect(player.isPlaying && phase ? 1.12 : 1.0)
+                        } animation: { _ in
+                            .easeInOut(duration: 0.9)
+                        }
 
                     Button {
                         togglePlayback()
@@ -142,10 +142,6 @@ struct CapsuleDetailView: View {
                     .accessibilityLabel(player.isPlaying ? "暂停" : "播放")
                 }
             }
-        }
-        .onChange(of: player.isPlaying) { _, playing in
-            ringPulse = playing
-            separatorPulse = playing
         }
     }
 
