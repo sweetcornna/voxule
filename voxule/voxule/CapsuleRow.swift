@@ -10,7 +10,7 @@ struct CapsuleRow: View {
 
     var body: some View {
         if capsule.state == .buried {
-            NegativeCard(title: displayTitle, meta: metaLine) {
+            NegativeCard(title: displayTitle, meta: metaLine, seal: sealKind) {
                 WaveformView(
                     samples: capsule.waveform.isEmpty
                         ? [Float](repeating: 0.08, count: 64)

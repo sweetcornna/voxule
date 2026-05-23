@@ -14,7 +14,7 @@ struct ShelfView: View {
     var body: some View {
         NavigationStack {
             ZStack(alignment: .bottomTrailing) {
-                VoxlueColor.paper.ignoresSafeArea().paperGrain()
+                PaperBackground().ignoresSafeArea()
 
                 Group {
                     if capsules.isEmpty {

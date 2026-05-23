@@ -15,7 +15,7 @@ struct CircleListView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                VoxlueColor.paper.ignoresSafeArea().paperGrain()
+                PaperBackground().ignoresSafeArea()
 
                 Group {
                     if isLoading {
@@ -86,14 +86,16 @@ struct CircleListView: View {
     }
 
     private var emptyState: some View {
+        // 不再复用样片墙的 Crimson display "voxlue" hero —— Crimson 给唯一显著时刻；
+        // 这里走 SF symbol + 思源宋 + Caveat 描述，与样片墙保持对话感的差异。
         VStack(spacing: VoxlueSpacing.lg) {
-            Text("voxlue")
-                .font(VoxlueTypography.display)
+            Image(systemName: "person.2.wave.2")
+                .font(.system(size: 44))
                 .foregroundStyle(VoxlueColor.darkroomGray)
             Text("还没有声音圈")
                 .font(VoxlueTypography.heading)
                 .foregroundStyle(VoxlueColor.ink)
-            MarginNote("家人或挚友的小圈子。")
+            MarginNote("圈起来，几个人就够。")
             Button("建一个声音圈") { showCreateSheet = true }
                 .font(VoxlueTypography.serifBody)
                 .buttonStyle(.borderedProminent)

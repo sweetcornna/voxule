@@ -19,7 +19,7 @@ struct CapsuleDetailView: View {
 
     var body: some View {
         ZStack {
-            VoxlueColor.paper.ignoresSafeArea().paperGrain()
+            PaperBackground().ignoresSafeArea()
 
             ScrollView {
                 VStack(alignment: .leading, spacing: VoxlueSpacing.xl) {
@@ -46,7 +46,7 @@ struct CapsuleDetailView: View {
     @ViewBuilder
     private var photoHero: some View {
         if capsule.state == .buried {
-            NegativeCard(title: displayTitle, meta: headerMeta) {
+            NegativeCard(title: displayTitle, meta: headerMeta, seal: sealKind) {
                 WaveformView(
                     samples: capsule.waveform.isEmpty
                         ? [Float](repeating: 0.1, count: 80)
