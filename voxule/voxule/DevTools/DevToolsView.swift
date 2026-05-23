@@ -13,12 +13,21 @@ struct DevToolsView: View {
     @State private var lastAction: String?
     @State private var confirmingWipe = false
 
+    /// 当前 ModelContainer 是否走 CloudKit 镜像 —— 由 `voxuleApp.init` 在选完
+    /// 生产/降级容器时设。`ModelConfiguration.cloudKitDatabase` 非 Equatable，所以
+    /// 这边不走运行时反射，而是从 App 壳层带过来。
+    private var isCloudKitMirrored: Bool { voxuleApp.isCloudKitMirrored }
+
     var body: some View {
         Form {
             Section {
                 Button {
-                    DevSampleData.seedAll(into: context)
-                    lastAction = "已种入 8 枚胶囊 + 2 个声音圈。"
+                    do {
+                        try DevSampleData.seedAll(into: context)
+                        lastAction = "已种入 8 枚胶囊 + 2 个声音圈。"
+                    } catch {
+                        lastAction = "种入失败：\(error.localizedDescription)"
+                    }
                 } label: {
                     Label("种入示例数据", systemImage: "leaf")
                 }
@@ -27,12 +36,17 @@ struct DevToolsView: View {
                     confirmingWipe = true
                 } label: {
                     Label("清空所有胶囊与圈", systemImage: "trash")
-                        .foregroundStyle(.red)
+                        .foregroundStyle(isCloudKitMirrored ? Color.secondary : Color.red)
                 }
+                .disabled(isCloudKitMirrored)
             } header: {
                 Text("种子数据")
             } footer: {
-                Text("示例胶囊覆盖三种锁、四种状态、两种 recipient；音频留空，回放会显示「没能放出这段声音」属正常。")
+                if isCloudKitMirrored {
+                    Text("示例胶囊覆盖三种锁、四种状态、两种 recipient；音频留空，回放会显示「没能放出这段声音」属正常。\n\n清空按钮在 CloudKit 镜像模式下禁用 —— 避免顺手把 iCloud 私有库的真胶囊也一并删掉。要清空请在非 iCloud 账号的模拟器上重装 App。")
+                } else {
+                    Text("示例胶囊覆盖三种锁、四种状态、两种 recipient；音频留空，回放会显示「没能放出这段声音」属正常。重复点击「种入」会累积，要重来请先「清空」。")
+                }
             }
 
             Section {
@@ -50,7 +64,10 @@ struct DevToolsView: View {
             Section {
                 Button {
                     CadenceSetting.current = .occasionally
-                    lastAction = "cadence 已重置为「偶尔」。"
+                    // 与 CadenceSettingsView 保持一致 —— 改完立刻取消 / 重排 BGTask，
+                    // 否则上次提交的请求会继续按旧 cadence 触发。
+                    Task { await voxuleApp.scheduleNextSurfacing() }
+                    lastAction = "cadence 已重置为「偶尔」，BGTask 重排。"
                 } label: {
                     Label("重置 cadence 为「偶尔」", systemImage: "arrow.counterclockwise")
                 }
@@ -70,23 +87,27 @@ struct DevToolsView: View {
         .alert("清空全部胶囊与圈？", isPresented: $confirmingWipe) {
             Button("清空", role: .destructive) {
                 DevSampleData.wipe(context: context)
+                // 路由可能指向已被删的 capsule —— 一起置空，避免 sheet 还试图弹一枚不存在的胶囊。
+                dependencies.router.routedCapsuleID = nil
                 lastAction = "已清空全部胶囊与圈。"
             }
             Button("取消", role: .cancel) {}
         } message: {
-            Text("仅清本设备本地库；CloudKit 已同步过的数据不在此影响。")
+            Text("仅本设备本地库 —— CloudKit 镜像模式下本按钮已禁用，所以这里执行不到镜像数据。")
         }
     }
 
     /// 挑第一枚 .buried 胶囊调用 TriggerEngine.surface()。
-    /// 失败（没胶囊）就提示。
+    /// 区分「库里没胶囊」与「胶囊全都浮过了」两种情形，便于自查。
     private func surfaceFirstBuried() async {
         let descriptor = FetchDescriptor<VoxlueData.Capsule>(
             sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
         )
         let capsules = (try? context.fetch(descriptor)) ?? []
         guard let target = capsules.first(where: { $0.state == .buried }) else {
-            lastAction = "没找到可浮现的 .buried 胶囊，先「种入示例数据」。"
+            lastAction = capsules.isEmpty
+                ? "库里还没胶囊，先「种入示例数据」。"
+                : "所有胶囊都已浮过 —— 先「清空」再「种入」可重置。"
             return
         }
         await dependencies.engine.surface(capsuleID: target.id)

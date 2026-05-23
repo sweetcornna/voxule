@@ -12,14 +12,15 @@ enum DevSampleData {
 
     /// 装入一组示例胶囊 + 声音圈到当前 ModelContext。
     /// 已存在的数据不动 —— 多次点击会累积，按需用 `wipe()` 清空。
-    static func seedAll(into context: ModelContext) {
+    /// 把 save 的失败抛出去 —— Dev 工具应该让 schema 出错被看见。
+    static func seedAll(into context: ModelContext) throws {
         let circles = sampleCircles()
         for circle in circles { context.insert(circle) }
         let mineCircleID = circles.first?.id
         for capsule in sampleCapsules(circleID: mineCircleID) {
             context.insert(capsule)
         }
-        try? context.save()
+        try context.save()
     }
 
     /// 清掉本地全部 `Capsule` / `Circle` / `CircleMember`。

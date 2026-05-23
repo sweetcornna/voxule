@@ -24,12 +24,17 @@ struct voxuleApp: App {
     /// 情绪浮现后台任务标识 —— 须与 Info.plist `BGTaskSchedulerPermittedIdentifiers` 一致。
     static let surfacingTaskID = "com.voxlue.app.agent.surfacing"
 
+    /// 当前 ModelContainer 是否走 CloudKit 镜像 —— DEBUG Dev 工具据此禁用「清空」按钮，
+    /// 避免顺手把用户 iCloud 私有库的真胶囊也一并删掉。
+    @MainActor static private(set) var isCloudKitMirrored = false
+
     init() {
         // 优先用生产配置 —— 镜像到 CloudKit 私有库。
         // 若 CloudKit 不可用（未登录 iCloud、缺少能力配置等），降级为纯本地存储。
         let container: ModelContainer
         if let cloudContainer = try? VoxlueModelContainer.make() {
             container = cloudContainer
+            Self.isCloudKitMirrored = true
         } else {
             do {
                 container = try ModelContainer(
