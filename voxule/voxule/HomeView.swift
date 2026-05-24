@@ -187,6 +187,22 @@ struct HomeView: View {
             )
             .scaleEffect(isPressing ? 1.06 : 1.0)
             .animation(.spring(response: 0.28, dampingFraction: 0.7), value: isPressing)
+            .overlay(alignment: .bottom) {
+                // 长按 affordance 的额外提示 —— mic 下方一颗朱红小 capsule，
+                // 告诉用户「现在松手就会开始录」，把 0.4s 的悬停时间从「没反馈」变成「在等你」。
+                // 跟着 isPressing 走，外层 .animation(...) 自动 fade in/out，不打断录音主流程。
+                if isPressing {
+                    Text("松手开始录音")
+                        .font(VoxlueTypography.caption)
+                        .foregroundStyle(VoxlueColor.vermillion)
+                        .padding(.horizontal, VoxlueSpacing.md)
+                        .padding(.vertical, VoxlueSpacing.xs)
+                        .background(VoxlueColor.paperHighlight, in: Capsule())
+                        .voxlueShadow(.paper)
+                        .offset(y: 30)
+                        .transition(.opacity)
+                }
+            }
             .contentShape(Circle())
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("冲一张")
