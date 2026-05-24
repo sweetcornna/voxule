@@ -10,6 +10,10 @@ struct ShelfView: View {
     @Query(sort: \VoxlueData.Capsule.createdAt, order: .reverse)
     private var capsules: [VoxlueData.Capsule]
 
+    /// 搜索词 —— 空串等价于不过滤，保留与 @Query 完全相同的渲染序，
+    /// 保证 UI 测试 testRecordBuryPlayMainLoop 在默认空查询下不动行为契约。
+    @State private var query = ""
+
     /// 时间分段 —— 顺序即渲染顺序，新鲜的在上。
     private enum Bucket: CaseIterable {
         case thisWeek   // 0–7 天
@@ -31,12 +35,18 @@ struct ShelfView: View {
                 PaperBackground().ignoresSafeArea()
 
                 if capsules.isEmpty {
+                    // 数据库本身为空 —— 首次到访，引去首页冲一张。
                     emptyState
+                } else if filteredCapsules.isEmpty && !query.isEmpty {
+                    // 数据库有片，但搜不到 —— 区别于空数据库的诗意空状态，
+                    // 用一行 MarginNote 提示，避免覆盖整个区域的大字 display。
+                    noMatchState
                 } else {
                     photoStack
                 }
             }
             .navigationTitle("样片墙")
+            .searchable(text: $query, prompt: Text("找一段声音"))
             .navigationDestination(for: UUID.self) { id in
                 if let capsule = capsules.first(where: { $0.id == id }) {
                     CapsuleDetailView(capsule: capsule)
@@ -57,6 +67,34 @@ struct ShelfView: View {
             MarginNote("去首页冲一张声音。")
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// 搜不到匹配 —— 小份量提示，留给搜索栏继续输入的余地。
+    /// 不复用 emptyState 的大字 display，那是给"墙真的空"的场合的。
+    private var noMatchState: some View {
+        VStack(spacing: VoxlueSpacing.sm) {
+            Text("找不到匹配的声音")
+                .font(VoxlueTypography.serifBody)
+                .foregroundStyle(VoxlueColor.ink)
+            MarginNote("换个词试试。")
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// 应用搜索词过滤 —— 空串直通，匹配 title 或 placeName（若存在）。
+    /// 在 shelfRows 之前过滤，bucket 划分才会跟着结果一起收敛。
+    private var filteredCapsules: [VoxlueData.Capsule] {
+        guard !query.isEmpty else { return capsules }
+        return capsules.filter { capsule in
+            if capsule.title.localizedCaseInsensitiveContains(query) {
+                return true
+            }
+            if let place = capsule.placeName,
+               place.localizedCaseInsensitiveContains(query) {
+                return true
+            }
+            return false
+        }
     }
 
     /// 把每个 capsule 标上所属 bucket，并打 firstInBucket 旗标。
@@ -80,12 +118,13 @@ struct ShelfView: View {
             return .earlier
         }
 
-        // @Query 已按 createdAt desc 排好；这里只需顺扫一遍，
-        // 在 bucket 变化的边界标 firstInBucket = true。
+        // @Query 已按 createdAt desc 排好；filter 保留顺序，
+        // 这里只需顺扫一遍，在 bucket 变化的边界标 firstInBucket = true。
+        let source = filteredCapsules
         var rows: [ShelfRow] = []
-        rows.reserveCapacity(capsules.count)
+        rows.reserveCapacity(source.count)
         var previousBucket: Bucket?
-        for capsule in capsules {
+        for capsule in source {
             let b = bucket(for: capsule.createdAt)
             rows.append(ShelfRow(
                 capsule: capsule,
