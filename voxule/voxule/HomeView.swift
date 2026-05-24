@@ -19,6 +19,17 @@ struct HomeView: View {
 
     private var latestCapsule: VoxlueData.Capsule? { recentCapsules.first }
 
+    /// 全量胶囊 —— 内存里过滤出 .developing 的那批。
+    /// 没用 `#Predicate { $0.state == .developing }` 是因为 SwiftData 对枚举字段的
+    /// predicate 在 iOS 26 仍偶现编译期奇怪报错；这里数据量本就不大，内存 filter 更稳。
+    /// 按 createdAt 倒序排好，pill 点进去的「第一段」就是最新一段在显影的。
+    @Query(sort: \VoxlueData.Capsule.createdAt, order: .reverse)
+    private var allCapsules: [VoxlueData.Capsule]
+
+    private var developingCapsules: [VoxlueData.Capsule] {
+        allCapsules.filter { $0.state == .developing }
+    }
+
     private static var recentDescriptor: FetchDescriptor<VoxlueData.Capsule> {
         var descriptor = FetchDescriptor<VoxlueData.Capsule>(
             sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
@@ -34,6 +45,13 @@ struct HomeView: View {
 
                 VStack(spacing: VoxlueSpacing.lg) {
                     Spacer()
+
+                    // 浮现待听 pill —— 有显影中胶囊就把它顶到 heading 上方，
+                    // 点一下进最新一段的 CapsuleDetailView（state == .developing
+                    // 时 detail 会自动落到 SurfacedCapsuleView 那张「等你听」的牌）。
+                    if !developingCapsules.isEmpty {
+                        surfacingPill
+                    }
 
                     // 思源宋 heading —— 一句把用户拽进来的诱导语。
                     Text("今天，冲一张")
@@ -112,6 +130,47 @@ struct HomeView: View {
             } onPressingChanged: { pressing in
                 isPressing = pressing
             }
+    }
+
+    /// 浮现待听 pill —— 顶在 heading 上方的一小颗 chrome。
+    /// 朱红呼吸点 + 「有 N 段等你听 →」，点击 push 进最新一段 developing 胶囊的
+    /// CapsuleDetailView。SurfacedCapsuleView 会接管渲染（state == .developing）。
+    /// 没有 developing 胶囊时，外部 `if` 直接不渲染 —— 默认布局完全不变。
+    @ViewBuilder
+    private var surfacingPill: some View {
+        // 兜底空数组保护：外部 if 已确保非空，这里取 first! 也是安全的，
+        // 但用 if let 让 SwiftUI diff 时类型一致、preview 也更稳。
+        if let first = developingCapsules.first {
+            NavigationLink {
+                CapsuleDetailView(capsule: first)
+            } label: {
+                HStack(spacing: VoxlueSpacing.sm) {
+                    Circle()
+                        .fill(VoxlueColor.vermillion)
+                        .frame(width: 6, height: 6)
+                        // 朱红点呼吸 —— 0.4 ↔ 1.0 让 pill 在视觉里活着，
+                        // 又不至于像 badge 那样咣咣闪。
+                        .phaseAnimator([false, true]) { content, phase in
+                            content.opacity(phase ? 1.0 : 0.4)
+                        } animation: { _ in
+                            .easeInOut(duration: 0.9)
+                        }
+
+                    Text("有 \(developingCapsules.count) 段等你听 →")
+                        .font(VoxlueTypography.caption)
+                        .foregroundStyle(VoxlueColor.vermillion)
+                }
+                .padding(.horizontal, VoxlueSpacing.md)
+                .padding(.vertical, VoxlueSpacing.sm)
+                .background(VoxlueColor.paperHighlight, in: Capsule())
+                .voxlueShadow(.paper)
+            }
+            .buttonStyle(.plain)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("有 \(developingCapsules.count) 段在显影，等你听")
+            .accessibilityHint("点开听最新一段")
+            .accessibilityAddTraits(.isButton)
+        }
     }
 
     /// 最近一枚胶囊的小预览 —— 缩小 75% 的 CapsuleRow，
