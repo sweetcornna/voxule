@@ -45,7 +45,7 @@ struct RecordView: View {
 
                     Text(timeString(recorder.elapsed))
                         .font(VoxlueTypography.clock)
-                        .foregroundStyle(VoxlueColor.paperHighlight)
+                        .foregroundStyle(VoxlueColor.paperHighlightLight)
                         .contentTransition(.numericText())
 
                     // 闲时：TimelineView 推呼吸波，darkroomGray；
@@ -60,14 +60,15 @@ struct RecordView: View {
                                         : breathingSamples(at: context.date),
                                     tint: recorder.isRecording
                                         ? VoxlueColor.vermillion
-                                        : VoxlueColor.darkroomGray
+                                        : VoxlueColor.darkroomGrayLight
                                 )
                             }
                         } else {
                             // 不可见时返回静态占位，省 TimelineView 的 12fps 推送。
+                            // 整屏永远是 negativeBlack 暗房底，波形 tint 用固定 light。
                             WaveformView(
                                 samples: [Float](repeating: 0.07, count: 80),
-                                tint: VoxlueColor.darkroomGray
+                                tint: VoxlueColor.darkroomGrayLight
                             )
                         }
                     }
@@ -105,12 +106,12 @@ struct RecordView: View {
                                 // 38×38 paperLight 方块 —— 停止信号。
                                 // 锐角 2px 圆角保留一丝纸感，不彻底机械化。
                                 RoundedRectangle(cornerRadius: 2)
-                                    .fill(VoxlueColor.paperHighlight)
+                                    .fill(VoxlueColor.paperHighlightLight)
                                     .frame(width: 38, height: 38)
                             } else {
                                 Image(systemName: "mic.fill")
                                     .font(.system(size: 44, weight: .semibold))
-                                    .foregroundStyle(VoxlueColor.paperHighlight)
+                                    .foregroundStyle(VoxlueColor.paperHighlightLight)
                             }
                         }
                     }
@@ -123,11 +124,11 @@ struct RecordView: View {
                         case .idle:
                             Text("点按，冲一张声音")
                                 .font(VoxlueTypography.caption)
-                                .foregroundStyle(VoxlueColor.darkroomGray)
+                                .foregroundStyle(VoxlueColor.darkroomGrayLight)
                         case .recording:
                             Text("正在冲洗这一张……")
                                 .font(VoxlueTypography.caption)
-                                .foregroundStyle(VoxlueColor.darkroomGray)
+                                .foregroundStyle(VoxlueColor.darkroomGrayLight)
                         case .long:
                             MarginNote("30 秒，差不多了。")
                         case .longer:

@@ -26,12 +26,13 @@ public struct DevelopingIslandLabel: View {
             if layout == .expanded {
                 VStack(alignment: .leading, spacing: 1) {
                     // §2.2 文案契约：浮现的灵动岛文案永远是「这里有一张你洗过一次的相」。
+                    // 灵动岛 / 锁屏永远在系统深底之上，文字用固定 light 端不参与翻面。
                     Text("这里有一张你洗过一次的相")
                         .font(VoxlueTypography.meta)
-                        .foregroundStyle(VoxlueColor.darkroomGray)
+                        .foregroundStyle(VoxlueColor.darkroomGrayLight)
                     Text(capsuleTitle)
                         .font(VoxlueTypography.serifBody)
-                        .foregroundStyle(VoxlueColor.paper)
+                        .foregroundStyle(VoxlueColor.paperLight)
                         .lineLimit(1)
                 }
             } else {
@@ -40,7 +41,7 @@ public struct DevelopingIslandLabel: View {
                 // （在等待被听见），与 expanded / 锁屏卡的全句呼应。
                 Text("等你听")
                     .font(VoxlueTypography.meta)
-                    .foregroundStyle(VoxlueColor.paper)
+                    .foregroundStyle(VoxlueColor.paperLight)
             }
         }
         .padding(.horizontal, VoxlueSpacing.md)

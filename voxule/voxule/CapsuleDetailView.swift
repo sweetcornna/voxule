@@ -167,12 +167,13 @@ struct CapsuleDetailView: View {
     private var photoHero: some View {
         if capsule.state == .buried {
             NegativeCard(title: displayTitle, meta: headerMeta, seal: sealKind) {
+                // 影像区永远是负片黑底，波形 tint 用固定 light。
                 WaveformView(
                     samples: capsule.waveform.isEmpty
                         ? [Float](repeating: 0.1, count: 80)
                         : capsule.waveform,
                     progress: player.progress,
-                    tint: VoxlueColor.darkroomGray
+                    tint: VoxlueColor.darkroomGrayLight
                 )
                 .padding(.horizontal, VoxlueSpacing.lg)
             }
@@ -183,7 +184,7 @@ struct CapsuleDetailView: View {
                         ? [Float](repeating: 0.1, count: 80)
                         : capsule.waveform,
                     progress: player.progress,
-                    tint: VoxlueColor.paperHighlight
+                    tint: VoxlueColor.paperHighlightLight
                 )
                 .padding(.horizontal, VoxlueSpacing.lg)
             }

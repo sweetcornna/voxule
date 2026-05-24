@@ -12,22 +12,25 @@ struct CapsuleRow: View {
         if capsule.state == .buried {
             NegativeCard(title: displayTitle, meta: metaLine,
                          seal: sealKind, sealDelay: stampDelay) {
+                // NegativeCard 影像区永远是负片黑底，波形 tint 用固定 light，
+                // 不跟随 colorScheme 翻面。
                 WaveformView(
                     samples: capsule.waveform.isEmpty
                         ? [Float](repeating: 0.08, count: 64)
                         : capsule.waveform,
-                    tint: VoxlueColor.darkroomGray
+                    tint: VoxlueColor.darkroomGrayLight
                 )
                 .padding(.horizontal, VoxlueSpacing.lg)
             }
         } else {
             PhotoCard(title: displayTitle, meta: metaLine,
                       seal: sealKind, sealDelay: stampDelay) {
+                // PhotoCard 图像区永远是负片黑底，同理用固定 light 端。
                 WaveformView(
                     samples: capsule.waveform.isEmpty
                         ? [Float](repeating: 0.08, count: 64)
                         : capsule.waveform,
-                    tint: VoxlueColor.paperHighlight
+                    tint: VoxlueColor.paperHighlightLight
                 )
                 .padding(.horizontal, VoxlueSpacing.lg)
             }

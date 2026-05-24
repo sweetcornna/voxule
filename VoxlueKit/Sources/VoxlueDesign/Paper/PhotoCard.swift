@@ -74,11 +74,11 @@ public struct PhotoCard<Image: View>: View {
             title: "咖啡馆的雨",
             meta: "31.21, 121.43 · 0:48 · 阴"
         ) {
-            // 占位声纹：等宽竖条。
+            // 占位声纹：等宽竖条。波形条永远盖在负片黑图像区上，用固定 light。
             HStack(spacing: 3) {
                 ForEach(0..<28, id: \.self) { i in
                     Capsule()
-                        .fill(VoxlueColor.paper.opacity(0.85))
+                        .fill(VoxlueColor.paperLight.opacity(0.85))
                         .frame(width: 3, height: CGFloat(12 + (i * 7) % 70))
                 }
             }
