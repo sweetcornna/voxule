@@ -14,9 +14,13 @@ struct SurfacedCapsuleView: View {
     @Environment(\.appEnvironment) private var env
     @Environment(\.modelContext) private var context
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.dismiss) private var dismiss
     @Query private var capsules: [VoxlueData.Capsule]
     @State private var playFailed = false
     @State private var developed = false
+    /// 「等等再说」标记 —— 用户主动延后聆听；onLeave 据此跳过 .developing → .opened 的翻面，
+    /// 让这枚胶囊继续留在首页等候队列。
+    @State private var deferring = false
 
     private var player: any AudioPlaying { env.player }
 
@@ -78,6 +82,14 @@ struct SurfacedCapsuleView: View {
                             .offset(y: -VoxlueSpacing.xs)
                     }
 
+                    Button("等等再说") {
+                        deferring = true
+                        dismiss()
+                    }
+                    .font(VoxlueTypography.caption)
+                    .foregroundStyle(VoxlueColor.graphite)
+                    .padding(.top, VoxlueSpacing.sm)
+
                     Text("不急。它会一直在这里，等你想听的时候。")
                         .font(VoxlueTypography.caption)
                         .foregroundStyle(VoxlueColor.darkroomGray)
@@ -121,8 +133,10 @@ struct SurfacedCapsuleView: View {
 
     /// 离开浮现卡：停回放并把胶囊翻到 .opened（仅当仍是 .developing），
     /// 以便下次进入时走常规详情。
+    /// 若用户按了「等等再说」（deferring），跳过翻面 —— 这次只是延后，胶囊继续在等候队列里。
     private func onLeave() {
         player.pause()
+        guard !deferring else { return }
         if let capsule, capsule.state == .developing {
             try? CapsuleStore(context: context).updateState(capsule, to: .opened)
         }
