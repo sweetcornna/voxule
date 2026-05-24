@@ -10,9 +10,20 @@ struct ShelfView: View {
     @Query(sort: \VoxlueData.Capsule.createdAt, order: .reverse)
     private var capsules: [VoxlueData.Capsule]
 
+    /// SwiftData 上下文 —— contextMenu 的"划掉"走 context.delete + save。
+    /// 这里不引 CapsuleStore，避免给样片墙再背一份依赖；
+    /// 行级删除是纯本地操作，直接走 modelContext 已够。
+    @Environment(\.modelContext) private var context
+
     /// 搜索词 —— 空串等价于不过滤，保留与 @Query 完全相同的渲染序，
     /// 保证 UI 测试 testRecordBuryPlayMainLoop 在默认空查询下不动行为契约。
     @State private var query = ""
+
+    /// 二次确认的目标胶囊 —— 非 nil 即弹 alert，alert 关闭时复位为 nil。
+    /// 用 Capsule? 而不是 Bool + 旁置 selected：
+    /// .alert(_:isPresented:presenting:) 需要个非空值给 actions/message 闭包，
+    /// 拿它当 identity 一并解决"弹谁"的歧义。
+    @State private var confirmingDelete: VoxlueData.Capsule?
 
     /// 时间分段 —— 顺序即渲染顺序，新鲜的在上。
     private enum Bucket: CaseIterable {
@@ -51,6 +62,25 @@ struct ShelfView: View {
                 if let capsule = capsules.first(where: { $0.id == id }) {
                     CapsuleDetailView(capsule: capsule)
                 }
+            }
+            // 行级 contextMenu 的二次确认 —— 用 presenting: 把目标胶囊带进闭包。
+            // isPresented 的 Binding 用 confirmingDelete != nil 推导：
+            // alert 系统在 dismiss 时会回写 false，借此把 state 复位为 nil。
+            .alert(
+                "划掉这枚胶囊？",
+                isPresented: Binding(
+                    get: { confirmingDelete != nil },
+                    set: { if !$0 { confirmingDelete = nil } }
+                ),
+                presenting: confirmingDelete
+            ) { capsule in
+                Button("划掉", role: .destructive) {
+                    context.delete(capsule)
+                    try? context.save()
+                }
+                Button("不了", role: .cancel) {}
+            } message: { _ in
+                Text("声音会从样片墙、地图和声音圈里消失。")
             }
         }
     }
@@ -166,6 +196,24 @@ struct ShelfView: View {
                     bottom: VoxlueSpacing.sm,
                     trailing: VoxlueSpacing.lg
                 ))
+                // 长按行 —— 不进详情就能分享 / 划掉。
+                // 分享只在确有音频数据时露出，避免给 buried/空音频行甩个空按钮；
+                // 划掉走 confirmingDelete = capsule，弹层在 NavigationStack 层级统一处理。
+                .contextMenu {
+                    if let data = row.capsule.audioData, !data.isEmpty {
+                        ShareLink(
+                            item: data,
+                            preview: SharePreview(
+                                row.capsule.title.isEmpty ? "（无题）" : row.capsule.title
+                            )
+                        )
+                    }
+                    Button(role: .destructive) {
+                        confirmingDelete = row.capsule
+                    } label: {
+                        Label("划掉", systemImage: "trash")
+                    }
+                }
             }
         }
         .listStyle(.plain)
