@@ -11,9 +11,11 @@ struct CapsuleDetailView: View {
 
     @Environment(\.appEnvironment) private var env
     @Environment(\.modelContext) private var context
+    @Environment(\.dismiss) private var dismiss
 
     @State private var loaded = false
     @State private var loadFailed = false
+    @State private var confirmingDelete = false
 
     private var player: any AudioPlaying { env.player }
 
@@ -32,6 +34,7 @@ struct CapsuleDetailView: View {
         }
         .navigationTitle(capsule.title.isEmpty ? "（无题）" : capsule.title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar { toolbarContent }
         .onAppear(perform: prepare)
         .onDisappear { player.pause() }
         .alert("没能放出这段声音", isPresented: $loadFailed) {
@@ -39,6 +42,54 @@ struct CapsuleDetailView: View {
         } message: {
             Text("音频读取失败。")
         }
+        .alert("划掉这枚胶囊？", isPresented: $confirmingDelete) {
+            Button("划掉", role: .destructive) { performDelete() }
+            Button("不了", role: .cancel) {}
+        } message: {
+            Text("声音会从样片墙、地图和声音圈里消失。")
+        }
+    }
+
+    /// 顶栏右上：分享 + 划掉。分享只在确有音频时露出。
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItemGroup(placement: .topBarTrailing) {
+            if let audioData = capsule.audioData, !audioData.isEmpty {
+                ShareLink(
+                    item: audioData,
+                    preview: SharePreview(displayTitle)
+                ) {
+                    Image(systemName: "square.and.arrow.up")
+                        .foregroundStyle(VoxlueColor.ink)
+                }
+                .accessibilityLabel("分享")
+            }
+
+            Menu {
+                Button(role: .destructive) {
+                    confirmingDelete = true
+                } label: {
+                    Label("划掉", systemImage: "trash")
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .foregroundStyle(VoxlueColor.ink)
+            }
+            .accessibilityLabel("更多")
+        }
+    }
+
+    /// 划掉：先停播放器（不然 AVAudioPlayer 还在抓 data）→ store.delete → dismiss。
+    private func performDelete() {
+        player.pause()
+        do {
+            try CapsuleStore(context: context).delete(capsule)
+        } catch {
+            // 兜底：store 失败就直接走 context，免得卡死返回不了。
+            context.delete(capsule)
+            try? context.save()
+        }
+        dismiss()
     }
 
     /// 顶部相片 —— 按状态分流：
