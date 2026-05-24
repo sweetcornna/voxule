@@ -351,3 +351,37 @@ v1 主功能完成后，VoxlueDesign 包（P3 · Photographic Plate · 暗房黑
 - **真机** HealthKit / CKShare / 真 agent 联调
 - **真 API key** 与大模型对接
 - Xcode 新建 **Widget Extension target**（源文件已在 `voxule/VoxlueWidget/`，灵动岛 DevelopingIslandLabel 等待接入）
+
+---
+
+## 9. 多 agent 并行增量 PR 总账（2026-05-23 ~ 2026-05-24）
+
+设计语言落地（§8）后的扫尾期，启用 worktree 隔离的并行 agent 工作流：主 agent 拆任务、分派 3 agent 并行写 / 评审 / 修 / 合主。截至本次更新已完成 12 批，**40+ 个独立 PR**。
+
+### 9.1 按主题归纳
+
+| 主题 | 涉及 PR |
+|---|---|
+| **导航 / IA 结构** | #14 主页改巨大录音键；#13 mic 居中；#20 样片墙 tab badge；#22 时间分段；#34 搜索 |
+| **首页深化** | #16 长按录音 + 最近预览；#28 浮现待听 pill；#31 状态统计；#40 每日 prompt；#54 prompt 点击换一句 |
+| **录音 / 装裱** | #15 装裱朱章预览；#21 「埋下」盖章仪式；#24 30s 软提示；#38 取消确认 |
+| **详情 / 回放** | #17 播放呼吸（phaseAnimator）；#27 分享 + 划掉；#36 批注编辑；#41 显影 timeline；#48 改个名；#52 改个圈 |
+| **声音圈** | #32 圈头部 PaperCard；#39 最近活动；#44 圈内胶囊改 CapsuleRow；#43 接受邀请风格化；#47 建圈字符上限；#51 邀请分享 sheet |
+| **地图** | #19 pin 点开纸卡气泡；#45 「我的位置」+ PaperCard 空状态 |
+| **浮现卡** | #29 「等等再说」；#50 「再听一次」 |
+| **设置 / 关于 / Dev** | #18 「关于 voxlue」+ 哲学落地；#26 接 DesignCatalog；#33 重看引导；#30 Dev 重置引导；#49 「项目」section |
+| **入场体验** | #25 首启 3 页引导；#46 陪伴授权页装饰 |
+| **设计组件深化** | #23 朱章 kind 切换 transition + spring；#37 shelf swipeActions；#53 shelf row swipeActions |
+| **对齐审计** | #35 三处偏移修；#42 五处 MarginNote 居中场景退出 |
+
+### 9.2 多 agent 并行工作流要点
+
+- 每个 agent 用 `isolation: worktree`，独立 derived-data path（`/tmp/voxule-dd-*`），互不冲突
+- 文件作用域严格切分（同一批 3 个 PR 必须触不同文件）
+- 主 agent 集中评审 + 合主 + 跑回归（`swift test` + `testRecordBuryPlayMainLoop` + clinical scan）
+- 单一 PR 失败不阻塞同批其他 PR
+
+### 9.3 仍未推进
+
+- **暗房模式 dark theme** —— 全局 colorScheme adapt，surface 太大，留单独立项
+- **contact-sheet 2 列网格** —— 与 #22 时间分段同文件冲突，需单独设计
