@@ -26,6 +26,14 @@ struct CreateCircleView: View {
                     TextField("给这个圈起个名字", text: $name)
                         .font(VoxlueTypography.serifBody)
                         .textInputAutocapitalization(.never)
+                        .onChange(of: name) { _, new in
+                            if new.count > 20 { name = String(new.prefix(20)) }
+                        }
+
+                    Text("\(trimmedName.count) / 20")
+                        .font(VoxlueTypography.meta)
+                        .foregroundStyle(trimmedName.count >= 17 ? VoxlueColor.vermillion : VoxlueColor.graphite)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                 } header: {
                     Text("声音圈")
                         .font(VoxlueTypography.caption)
@@ -61,7 +69,7 @@ struct CreateCircleView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("建好这个圈") { submit() }
-                        .disabled(trimmedName.isEmpty || isSubmitting)
+                        .disabled(trimmedName.isEmpty || trimmedName.count > 20 || isSubmitting)
                         .font(VoxlueTypography.serifBody)
                         .foregroundStyle(VoxlueColor.vermillion)
                 }
