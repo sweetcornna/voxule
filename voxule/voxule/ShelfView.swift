@@ -221,6 +221,29 @@ struct ShelfView: View {
                         Label("划掉", systemImage: "trash")
                     }
                 }
+                // 右滑快捷入口 —— 长按只是发现路径之一，多数 iOS 用户先试右滑。
+                // 与 contextMenu 并存：两条路通向同一组动作，谁先发现都行。
+                // allowsFullSwipe: false —— 划掉是破坏性操作，不让一滑到底无确认就走。
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button(role: .destructive) {
+                        confirmingDelete = row.capsule
+                    } label: {
+                        Label("划掉", systemImage: "trash")
+                    }
+                    .tint(VoxlueColor.vermillion)
+
+                    if let data = row.capsule.audioData, !data.isEmpty {
+                        ShareLink(
+                            item: data,
+                            preview: SharePreview(
+                                row.capsule.title.isEmpty ? "（无题）" : row.capsule.title
+                            )
+                        ) {
+                            Label("分享", systemImage: "square.and.arrow.up")
+                        }
+                        .tint(VoxlueColor.graphite)
+                    }
+                }
             }
         }
         .listStyle(.plain)
