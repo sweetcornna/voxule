@@ -45,6 +45,21 @@ struct SettingsView: View {
                 sectionHeader("关于")
             }
 
+            Section {
+                Link(destination: URL(string: "https://github.com/ymylive/voxule")!) {
+                    settingsRow(icon: "chevron.right.square", text: "项目仓库")
+                }
+                Link(destination: URL(string: "mailto:hello@voxlue.app")!) {
+                    settingsRow(icon: "envelope", text: "反馈一段声音")
+                }
+            } header: {
+                sectionHeader("项目")
+            } footer: {
+                Text("voxlue 是开源的，欢迎来逛。")
+                    .font(VoxlueTypography.caption)
+                    .foregroundStyle(VoxlueColor.darkroomGray)
+            }
+
             #if DEBUG
             Section {
                 NavigationLink {
