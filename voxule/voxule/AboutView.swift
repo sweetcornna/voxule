@@ -18,6 +18,7 @@ struct AboutView: View {
                     // MarginNote 内部已 HStack 左对齐内容；不再外套 maxWidth: .infinity，
                     // 与 HomeView / ShelfView / CircleListView 等其余落地保持一致。
                     MarginNote("— 这是陪伴，不是提醒事项。")
+                    catalogLink
                     version
                 }
                 .padding(.horizontal, VoxlueSpacing.xl)
@@ -92,6 +93,28 @@ struct AboutView: View {
                 .padding(.vertical, VoxlueSpacing.xs)
             }
         }
+    }
+
+    /// 设计系统入口 —— 朱色胶囊，推 DesignCatalogView。
+    /// 摆在 MarginNote 之后、version 之前；保持「subtle 但明显可点」的中间地带。
+    private var catalogLink: some View {
+        NavigationLink {
+            DesignCatalogView()
+        } label: {
+            HStack(spacing: VoxlueSpacing.sm) {
+                Image(systemName: "swatchpalette")
+                    .foregroundStyle(VoxlueColor.vermillion)
+                Text("看看完整设计系统 →")
+                    .font(VoxlueTypography.caption)
+                    .foregroundStyle(VoxlueColor.vermillion)
+            }
+            .padding(.horizontal, VoxlueSpacing.md)
+            .padding(.vertical, VoxlueSpacing.sm)
+            .background(VoxlueColor.paperHighlight, in: Capsule())
+            .voxlueShadow(.paper)
+        }
+        .buttonStyle(.plain)
+        .padding(.top, VoxlueSpacing.lg)
     }
 
     /// 版本号 —— Space Mono 元数据，暗房灰。
