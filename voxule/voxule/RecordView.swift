@@ -44,7 +44,7 @@ struct RecordView: View {
                     Spacer()
 
                     Text(timeString(recorder.elapsed))
-                        .font(VoxlueTypography.serifLatin(.display))
+                        .font(VoxlueTypography.clock)
                         .foregroundStyle(VoxlueColor.paperHighlight)
                         .contentTransition(.numericText())
 
@@ -81,9 +81,38 @@ struct RecordView: View {
                     Button {
                         recorder.isRecording ? stop() : start()
                     } label: {
-                        Image(systemName: recorder.isRecording ? "stop.circle.fill" : "mic.circle.fill")
-                            .font(.system(size: 84))
-                            .foregroundStyle(VoxlueColor.vermillion)
+                        // 110×110 朱红径向渐变球 —— 暗房整屏黑底里唯一的色温热点。
+                        // 录音时中心放 38×38 paperLight 方块（停止信号），闲时放 mic glyph。
+                        // 不用 .system stop.circle.fill / mic.circle.fill —— 系统 icon 的
+                        // 描边与圆点比例与设计稿的「实心朱红球 + 留白方块」对不上。
+                        ZStack {
+                            Circle()
+                                .fill(
+                                    RadialGradient(
+                                        colors: [
+                                            VoxlueColor.vermillion,
+                                            VoxlueColor.vermillion.opacity(0.82)
+                                        ],
+                                        center: .center,
+                                        startRadius: 0,
+                                        endRadius: 55
+                                    )
+                                )
+                                .frame(width: 110, height: 110)
+                                .voxlueShadow(.paper)
+
+                            if recorder.isRecording {
+                                // 38×38 paperLight 方块 —— 停止信号。
+                                // 锐角 2px 圆角保留一丝纸感，不彻底机械化。
+                                RoundedRectangle(cornerRadius: 2)
+                                    .fill(VoxlueColor.paperHighlight)
+                                    .frame(width: 38, height: 38)
+                            } else {
+                                Image(systemName: "mic.fill")
+                                    .font(.system(size: 44, weight: .semibold))
+                                    .foregroundStyle(VoxlueColor.paperHighlight)
+                            }
+                        }
                     }
                     .accessibilityLabel(recorder.isRecording ? "停止" : "开始冲洗")
 

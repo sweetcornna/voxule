@@ -72,6 +72,13 @@ public enum VoxlueTypography {
         custom(PSName.crimsonItalic, size: 56)
     }
 
+    /// 暗房时钟：Crimson Pro 斜体，72pt。只给 Record 冲洗台计时器用 ——
+    /// 整屏负片黑底里需要这一档「老式秒表」字号才压得住，display 的 34pt
+    /// 太收敛，会被 80pt 波形线挤走视觉焦点。
+    public static var clock: Font {
+        custom(PSName.crimsonItalic, size: 72)
+    }
+
     /// 区段标题：思源宋 SemiBold，26pt。
     public static var heading: Font {
         custom(PSName.notoSemiBold, size: Step.heading.size)
