@@ -72,6 +72,15 @@ struct DevToolsView: View {
                 } label: {
                     Label("重置 cadence 为「偶尔」", systemImage: "arrow.counterclockwise")
                 }
+
+                Button {
+                    // 直接戳 UserDefaults —— Onboarding 那边用的就是这把 key，
+                    // 不走 @AppStorage 绑定是为了省一个 @State 字段，纯 Dev 工具不必要。
+                    UserDefaults.standard.set(false, forKey: "voxlue.hasSeenOnboarding")
+                    lastAction = "已重置首启引导 —— 下次冷启动 App 会再弹一次"
+                } label: {
+                    Label("重新看一遍首启引导", systemImage: "sparkles")
+                }
             } header: {
                 Text("其他")
             }
