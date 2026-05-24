@@ -176,6 +176,8 @@ struct ShelfView: View {
     /// 与 MarginNote 同款引线，但不用手写体 —— 这里是分隔，不是批注。
     /// 没有 .listRowInsets / .listRowBackground：这里不是独立 List row，
     /// 而是被嵌进该段首行 NavigationLink 内容顶部的一个 HStack。
+    /// 左 padding 与 PhotoCard / NegativeCard 内部标题对齐（外 lg + 卡内 lg = 2lg），
+    /// 否则短画悬在卡片标题左侧 12pt 空中，视觉上歪一寸。
     private func sectionHeader(_ label: String) -> some View {
         HStack(spacing: VoxlueSpacing.sm) {
             Rectangle()
@@ -186,6 +188,7 @@ struct ShelfView: View {
                 .foregroundStyle(VoxlueColor.graphite)
         }
         .textCase(nil)
+        .padding(.leading, VoxlueSpacing.lg)
         .padding(.top, VoxlueSpacing.sm)
         .padding(.bottom, VoxlueSpacing.xs)
     }

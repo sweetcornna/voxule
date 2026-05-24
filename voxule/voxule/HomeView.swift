@@ -73,8 +73,12 @@ struct HomeView: View {
 
                     Spacer().frame(height: VoxlueSpacing.sm)
 
-                    // Caveat 手写引导 —— 像冲洗师在工作台留了一句。
-                    MarginNote("点我，把这段声音冲下来。")
+                    // Caveat 手写引导 —— mic 下方的独立指示语，不需要 MarginNote 的朱红
+                    // 引线（引线是「批注某物」的语义）。这里只是一句话，居中纯文字更和谐。
+                    Text("点我，把这段声音冲下来。")
+                        .font(VoxlueTypography.annotation)
+                        .foregroundStyle(VoxlueColor.vermillion)
+                        .multilineTextAlignment(.center)
 
                     if let capsule = latestCapsule {
                         recentPreview(for: capsule)
@@ -189,7 +193,10 @@ struct HomeView: View {
     /// 按状态自动走 PhotoCard / NegativeCard，点击进 CapsuleDetailView。
     @ViewBuilder
     private func recentPreview(for capsule: VoxlueData.Capsule) -> some View {
-        VStack(spacing: VoxlueSpacing.sm) {
+        // MarginNote 与 NegativeCard 绑成同宽 VStack 左对齐，共享一条左边轴 ——
+        // 之前 MarginNote 居中、NegativeCard 居中但内容 280pt 宽，两者各自独立居中，
+        // 朱红引线和卡片的左边缘不在一条线上，是「批注与相片对话」语义里最别扭的那种偏移。
+        VStack(alignment: .leading, spacing: VoxlueSpacing.sm) {
             // 显示的可能是 .buried / .developing / .developed / .opened 任一状态，
             // 不一定刚埋下，所以不说「埋下的」。
             MarginNote("最近的一段")
@@ -198,11 +205,9 @@ struct HomeView: View {
                 CapsuleDetailView(capsule: capsule)
             } label: {
                 CapsuleRow(capsule: capsule)
-                    .scaleEffect(0.75, anchor: .top)
-                    .frame(maxWidth: 280)
+                    .scaleEffect(0.75, anchor: .topLeading)
                     // scaleEffect 不真正缩布局尺寸，要手动收缩容器高度。
-                    // 卡片原高 ≈ 216（image 150 + 标题 ~22 + 间距 + meta ~16 + 内 padding ~24 + 阴影），
-                    // × 0.75 ≈ 162，给一点呼吸到 168。
+                    // 卡片原高 ≈ 216 × 0.75 ≈ 162，给一点呼吸到 168。
                     .frame(height: 168, alignment: .top)
                     .clipped()
             }
@@ -210,6 +215,9 @@ struct HomeView: View {
             .accessibilityElement(children: .combine)
             .accessibilityLabel("最近一枚：\(capsule.title.isEmpty ? "（无题）" : capsule.title)")
         }
+        // 整个 VStack 限到 280pt 再居中放进父 VStack —— 这样 MarginNote 与卡片
+        // 都贴着这块 280pt 的左缘排，整体仍居中。
+        .frame(maxWidth: 280)
     }
 
     /// 档案统计条 —— Space Mono 跑出像胶卷边沿打孔的标签感，
