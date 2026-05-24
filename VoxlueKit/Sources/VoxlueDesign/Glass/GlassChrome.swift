@@ -39,7 +39,9 @@ public struct GlassFloatingButton: View {
                 .foregroundStyle(VoxlueColor.vermillion)
                 .frame(width: 60, height: 60)
         }
-        .voxlueGlass(tint: GlassTint.vermillionWash, interactive: true)
+        // 玻璃形状必须与 clipShape 对齐 —— 否则 dark 下默认 rect(22) 玻璃高光沿
+        // 矩形 4 条边走，再被 Circle 切，会在边缘留一圈亮鳞。
+        .voxlueGlass(tint: GlassTint.vermillionWash, interactive: true, in: Circle())
         .clipShape(Circle())
     }
 }

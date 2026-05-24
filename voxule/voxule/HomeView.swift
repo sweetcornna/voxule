@@ -175,7 +175,9 @@ struct HomeView: View {
             .font(.system(size: 72, weight: .semibold))
             .foregroundStyle(VoxlueColor.vermillion)
             .frame(width: 200, height: 200)
-            .voxlueGlass(tint: GlassTint.vermillionWash, interactive: true)
+            // 玻璃形状与最终 clipShape 必须对齐：传 Circle()，让 specular 高光沿圆走，
+            // 避免默认 rect(22) 玻璃被 clipShape 切成一圈亮鳞（dark 下尤其刺眼）。
+            .voxlueGlass(tint: GlassTint.vermillionWash, interactive: true, in: Circle())
             .clipShape(Circle())
             .overlay(
                 // 朱红光圈 —— 按住时从 mic 边缘往外推一圈淡朱，松手即收。
