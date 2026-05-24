@@ -168,14 +168,17 @@ private struct CircleCapsulesList: View {
                 .foregroundStyle(VoxlueColor.graphite)
         } else {
             ForEach(capsules) { capsule in
-                VStack(alignment: .leading, spacing: VoxlueSpacing.xs) {
-                    Text(capsule.title.isEmpty ? "（无题）" : capsule.title)
-                        .font(VoxlueTypography.serifBody)
-                        .foregroundStyle(VoxlueColor.ink)
-                    Text("\(capsule.authorName.isEmpty ? "某人" : capsule.authorName) · \(capsule.state.displayLabel)")
-                        .font(VoxlueTypography.meta)
-                        .foregroundStyle(VoxlueColor.graphite)
+                NavigationLink {
+                    CapsuleDetailView(capsule: capsule)
+                } label: {
+                    // 跟 HomeView 最近预览同款：CapsuleRow 缩 75%，再用固定高度
+                    // 把视觉收回到 topLeading，避免 scaleEffect 留出半截空白。
+                    CapsuleRow(capsule: capsule)
+                        .scaleEffect(0.75, anchor: .topLeading)
+                        .frame(height: 168, alignment: .top)
+                        .clipped()
                 }
+                .buttonStyle(.plain)
             }
         }
     }
