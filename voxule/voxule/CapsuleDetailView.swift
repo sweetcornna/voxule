@@ -16,6 +16,8 @@ struct CapsuleDetailView: View {
     @State private var loaded = false
     @State private var loadFailed = false
     @State private var confirmingDelete = false
+    @State private var showingNoteEditor = false
+    @State private var editingNote = ""
 
     private var player: any AudioPlaying { env.player }
 
@@ -48,6 +50,7 @@ struct CapsuleDetailView: View {
         } message: {
             Text("声音会从样片墙、地图和声音圈里消失。")
         }
+        .sheet(isPresented: $showingNoteEditor) { noteEditor }
     }
 
     /// 顶栏右上：分享 + 划掉。分享只在确有音频时露出。
@@ -214,7 +217,32 @@ struct CapsuleDetailView: View {
                     metadataRow(label: "录于", value: place)
                 }
                 if let note = capsule.note, !note.isEmpty {
-                    metadataRow(label: "批注", value: note)
+                    Button {
+                        beginNoteEdit()
+                    } label: {
+                        metadataRow(label: "批注", value: note)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("编辑批注")
+                } else {
+                    Button {
+                        beginNoteEdit()
+                    } label: {
+                        HStack(alignment: .firstTextBaseline) {
+                            Text("批注")
+                                .font(VoxlueTypography.caption)
+                                .foregroundStyle(VoxlueColor.graphite)
+                                .frame(width: 48, alignment: .leading)
+                            Image(systemName: "square.and.pencil")
+                                .foregroundStyle(VoxlueColor.vermillion)
+                            Text("写一条批注")
+                                .font(VoxlueTypography.serifBody)
+                                .foregroundStyle(VoxlueColor.vermillion)
+                            Spacer()
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("写一条批注")
                 }
                 metadataRow(
                     label: "埋于",
@@ -222,6 +250,52 @@ struct CapsuleDetailView: View {
                 )
             }
         }
+    }
+
+    /// 批注编辑 sheet —— 纸基底 + 思源宋 TextField + 朱红保存按钮。
+    private var noteEditor: some View {
+        NavigationStack {
+            ZStack {
+                PaperBackground().ignoresSafeArea()
+
+                TextField(
+                    "写一条批注",
+                    text: $editingNote,
+                    axis: .vertical
+                )
+                .font(VoxlueTypography.serifBody)
+                .foregroundStyle(VoxlueColor.ink)
+                .lineLimit(3...10)
+                .padding(VoxlueSpacing.lg)
+            }
+            .navigationTitle("批注")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("取消") {
+                        showingNoteEditor = false
+                    }
+                    .foregroundStyle(VoxlueColor.graphite)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("保存") {
+                        saveNote()
+                    }
+                    .foregroundStyle(VoxlueColor.vermillion)
+                }
+            }
+        }
+    }
+
+    private func beginNoteEdit() {
+        editingNote = capsule.note ?? ""
+        showingNoteEditor = true
+    }
+
+    private func saveNote() {
+        capsule.note = editingNote.isEmpty ? nil : editingNote
+        try? context.save()
+        showingNoteEditor = false
     }
 
     private func metadataRow(label: String, value: String) -> some View {
