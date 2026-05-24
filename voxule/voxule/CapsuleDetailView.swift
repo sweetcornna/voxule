@@ -18,6 +18,8 @@ struct CapsuleDetailView: View {
     @State private var confirmingDelete = false
     @State private var showingNoteEditor = false
     @State private var editingNote = ""
+    @State private var showingRename = false
+    @State private var editingTitle = ""
 
     private var player: any AudioPlaying { env.player }
 
@@ -52,6 +54,7 @@ struct CapsuleDetailView: View {
             Text("声音会从样片墙、地图和声音圈里消失。")
         }
         .sheet(isPresented: $showingNoteEditor) { noteEditor }
+        .sheet(isPresented: $showingRename) { renameSheet }
     }
 
     /// 顶栏右上：分享 + 划掉。分享只在确有音频时露出。
@@ -70,6 +73,13 @@ struct CapsuleDetailView: View {
             }
 
             Menu {
+                Button {
+                    editingTitle = capsule.title
+                    showingRename = true
+                } label: {
+                    Label("改个名", systemImage: "pencil")
+                }
+                Divider()
                 Button(role: .destructive) {
                     confirmingDelete = true
                 } label: {
@@ -356,6 +366,48 @@ struct CapsuleDetailView: View {
         capsule.note = editingNote.isEmpty ? nil : editingNote
         try? context.save()
         showingNoteEditor = false
+    }
+
+    /// 改名 sheet —— 纸基底 + Form section + 朱红保存。
+    /// 这里只是 metadata —— 摄影师重贴标签，不动底片。
+    private var renameSheet: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField("给这张声音起个名", text: $editingTitle)
+                        .font(VoxlueTypography.serifBody)
+                } header: {
+                    Text("标题")
+                        .font(VoxlueTypography.caption)
+                        .foregroundStyle(VoxlueColor.graphite)
+                        .textCase(nil)
+                }
+            }
+            .scrollContentBackground(.hidden)
+            .background(PaperBackground().ignoresSafeArea())
+            .navigationTitle("改个名")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("取消") {
+                        showingRename = false
+                    }
+                    .foregroundStyle(VoxlueColor.graphite)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("保存") {
+                        saveTitle()
+                    }
+                    .foregroundStyle(VoxlueColor.vermillion)
+                }
+            }
+        }
+    }
+
+    private func saveTitle() {
+        capsule.title = editingTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        try? context.save()
+        showingRename = false
     }
 
     private func metadataRow(label: String, value: String) -> some View {
