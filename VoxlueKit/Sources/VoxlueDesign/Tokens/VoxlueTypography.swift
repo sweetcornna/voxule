@@ -66,6 +66,12 @@ public enum VoxlueTypography {
         custom(PSName.crimsonItalic, size: Step.display.size)
     }
 
+    /// 入场 hero 大字：Crimson Pro 斜体，56pt。仅给 Onboarding 第一屏的
+    /// 「voxlue」与同等量级的 hero 标题用 —— 比 display 多一档诗意留白。
+    public static var displayHero: Font {
+        custom(PSName.crimsonItalic, size: 56)
+    }
+
     /// 区段标题：思源宋 SemiBold，26pt。
     public static var heading: Font {
         custom(PSName.notoSemiBold, size: Step.heading.size)
