@@ -6,6 +6,20 @@ import VoxlueServices
 
 /// 声音圈列表 —— 自建的与受邀加入的圈都在这里。
 struct CircleListView: View {
+    /// 给圈用的 emoji 池 —— 涵盖家、自然、夜、茶、相机几种"圈"的氛围。
+    /// 改池子前注意：池长决定 hash 落点，同名圈的 emoji 会随之漂移，不影响数据。
+    private static let circleEmojiPool: [String] = [
+        "🏠", "👨‍👩‍👧", "👫", "🌿", "🎵", "🌙", "🍵", "🌊", "🕯", "📷"
+    ]
+
+    /// 由圈名 hash 出 emoji，同名稳定。空名 fallback 一个空心圆点。
+    private static func emoji(forName name: String) -> String {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return "○" }
+        let hash = abs(trimmed.hashValue)
+        return circleEmojiPool[hash % circleEmojiPool.count]
+    }
+
     @Environment(ServiceContainer.self) private var services
 
     @Query(sort: \VoxlueData.Capsule.createdAt, order: .reverse)
@@ -119,7 +133,8 @@ struct CircleListView: View {
             NavigationLink(value: circle.id) {
                 CircleRow(
                     circle: circle,
-                    latestCapsuleTitle: latestTitle(forCircle: circle.id)
+                    latestCapsuleTitle: latestTitle(forCircle: circle.id),
+                    emoji: Self.emoji(forName: circle.name)
                 )
             }
             .buttonStyle(.plain)
@@ -162,12 +177,18 @@ struct CircleListView: View {
 private struct CircleRow: View {
     let circle: VoxlueData.Circle
     let latestCapsuleTitle: String?
+    /// 由父级按圈名 hash 算好传进来 —— Row 不负责选 emoji，免得 Preview/测试时拿不到同一稳定值。
+    let emoji: String
 
     private var memberCount: Int { circle.members?.count ?? 0 }
 
     var body: some View {
         PaperCard {
-            HStack {
+            HStack(spacing: VoxlueSpacing.md) {
+                Text(emoji)
+                    .font(.system(size: 28))
+                    .frame(width: 44, height: 44)
+                    .background(VoxlueColor.paperShadow.opacity(0.4), in: Circle())
                 VStack(alignment: .leading, spacing: VoxlueSpacing.xs) {
                     Text(circle.name.isEmpty ? "（未命名的圈）" : circle.name)
                         .font(VoxlueTypography.serifTitle)
