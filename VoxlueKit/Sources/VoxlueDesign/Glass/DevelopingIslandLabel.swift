@@ -25,7 +25,8 @@ public struct DevelopingIslandLabel: View {
 
             if layout == .expanded {
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("显影中")
+                    // §2.2 文案契约：浮现的灵动岛文案永远是「这里有一张你洗过一次的相」。
+                    Text("这里有一张你洗过一次的相")
                         .font(VoxlueTypography.meta)
                         .foregroundStyle(VoxlueColor.darkroomGray)
                     Text(capsuleTitle)
@@ -34,7 +35,10 @@ public struct DevelopingIslandLabel: View {
                         .lineLimit(1)
                 }
             } else {
-                Text("显影中")
+                // 紧凑形态 —— 灵动岛 compact 物理宽度只够 4–6 字，
+                // §2.2 契约的全句放不下；用「等你听」保留同一情感登记
+                // （在等待被听见），与 expanded / 锁屏卡的全句呼应。
+                Text("等你听")
                     .font(VoxlueTypography.meta)
                     .foregroundStyle(VoxlueColor.paper)
             }
