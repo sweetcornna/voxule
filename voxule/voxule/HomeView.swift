@@ -11,6 +11,9 @@ struct HomeView: View {
     /// 长按视觉反馈 —— 按住 mic 时整颗按钮放大并外圈泛朱红，
     /// 给用户「我已经按住了」的物理回授，0.4s 后才真正触发录音。
     @State private var isPressing = false
+    /// 当日 prompt 偏移 —— 用户在 prompt 上点一下就 +1，循环取下一句。
+    /// 只活在当前 session 里，杀进程或跨日都重置回 0，让按日轮换的默认体验保持稳定。
+    @State private var promptOffset = 0
 
     /// 取最近一枚胶囊 —— FetchDescriptor 显式设 fetchLimit=1，
     /// 避免预览渲染时把整张 Capsule 表 materialize 进内存。
@@ -70,10 +73,13 @@ struct HomeView: View {
     /// 模运算照常工作，不需要特判。
     /// nil 兜底是日历返回失败时的极端情况（理论上不会发生在 Gregorian + .current），
     /// 保底用第 0 句而不是 crash。
-    private static var todaysPrompt: String {
+    /// 叠加 `promptOffset` 让用户点 prompt 时能在当前 session 里换下一句，
+    /// 杀进程或跨日重置回当日固定那句。
+    private var todaysPrompt: String {
         let calendar = Calendar.current
         let dayOfYear = calendar.ordinality(of: .day, in: .year, for: Date()) ?? 1
-        return prompts[(dayOfYear - 1) % prompts.count]
+        let index = (dayOfYear - 1 + promptOffset) % Self.prompts.count
+        return Self.prompts[index]
     }
 
     var body: some View {
@@ -99,11 +105,23 @@ struct HomeView: View {
                             .font(VoxlueTypography.heading)
                             .foregroundStyle(VoxlueColor.ink)
 
-                        Text(Self.todaysPrompt)
-                            .font(VoxlueTypography.caption)
-                            .foregroundStyle(VoxlueColor.graphite)
-                            .multilineTextAlignment(.center)
-                            .accessibilityLabel("今天的提示：\(Self.todaysPrompt)")
+                        // 点一下 prompt 就轮到下一句 —— promptOffset += 1，
+                        // contentTransition(.numericText()) 让换字像翻页器一样平滑，
+                        // 既不打扰录音主流程，也给「不想要这句」的用户一个出口。
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.25)) {
+                                promptOffset += 1
+                            }
+                        } label: {
+                            Text(todaysPrompt)
+                                .font(VoxlueTypography.caption)
+                                .foregroundStyle(VoxlueColor.graphite)
+                                .multilineTextAlignment(.center)
+                                .contentTransition(.numericText())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("今日提示")
+                        .accessibilityHint("点一下换一句")
                     }
 
                     Spacer().frame(height: VoxlueSpacing.lg)
