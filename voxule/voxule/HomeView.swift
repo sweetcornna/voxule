@@ -47,6 +47,35 @@ struct HomeView: View {
         return descriptor
     }
 
+    /// 每日 prompt 池 —— 顺着 voxlue 暗房气质写：第二人称、感官、轻、不下命令。
+    /// 故意全是「问句 / 邀请 / 留白」，避免 CTA 式的「立刻录！」。
+    /// 顺序无所谓，只要保持稳定（同一索引同一句话），按日轮换就行。
+    private static let prompts: [String] = [
+        "今天有什么声音想留下？",
+        "外婆的口头禅，录一句？",
+        "雨打窗户的声音，存一段。",
+        "厨房里有人在做饭吗？",
+        "今天的笑声，值得留下来。",
+        "想了又想没说出口的那句话。",
+        "陌生地方的环境声。",
+        "回家路上听到的歌。",
+        "枕边人均匀的呼吸。",
+        "窗外那只总在叫的鸟。",
+        "一句给十年后自己的话。",
+        "此刻屋里最安静的声音。"
+    ]
+
+    /// 今日 prompt —— 用 day-of-year 取模，让同一天反复打开 app 看到的话不变；
+    /// 跨日 0 点自动换一句。`ordinality(of:.day, in:.year)` 在闰年里走到 366，
+    /// 模运算照常工作，不需要特判。
+    /// nil 兜底是日历返回失败时的极端情况（理论上不会发生在 Gregorian + .current），
+    /// 保底用第 0 句而不是 crash。
+    private static var todaysPrompt: String {
+        let calendar = Calendar.current
+        let dayOfYear = calendar.ordinality(of: .day, in: .year, for: Date()) ?? 1
+        return prompts[(dayOfYear - 1) % prompts.count]
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -62,10 +91,20 @@ struct HomeView: View {
                         surfacingPill
                     }
 
-                    // 思源宋 heading —— 一句把用户拽进来的诱导语。
-                    Text("今天，冲一张")
-                        .font(VoxlueTypography.heading)
-                        .foregroundStyle(VoxlueColor.ink)
+                    // 思源宋 heading + 每日 prompt —— heading 拽用户进来，prompt 给一个
+                    // 具体的「今天可以录什么」的轻提示。两行用 xs 间距黏成一组，外层 VStack
+                    // 的 lg 间距继续把这一组与下面的 mic 拉开。
+                    VStack(spacing: VoxlueSpacing.xs) {
+                        Text("今天，冲一张")
+                            .font(VoxlueTypography.heading)
+                            .foregroundStyle(VoxlueColor.ink)
+
+                        Text(Self.todaysPrompt)
+                            .font(VoxlueTypography.caption)
+                            .foregroundStyle(VoxlueColor.graphite)
+                            .multilineTextAlignment(.center)
+                            .accessibilityLabel("今天的提示：\(Self.todaysPrompt)")
+                    }
 
                     Spacer().frame(height: VoxlueSpacing.lg)
 
