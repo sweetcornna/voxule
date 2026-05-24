@@ -13,6 +13,9 @@ struct CapsuleDetailView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
 
+    /// 拉一遍按 createdAt 倒序的全表，用来给底部「上一枚 / 下一枚」找邻居。
+    @Query(sort: \VoxlueData.Capsule.createdAt, order: .reverse) private var allCapsules: [VoxlueData.Capsule]
+
     @State private var loaded = false
     @State private var loadFailed = false
     @State private var confirmingDelete = false
@@ -34,6 +37,7 @@ struct CapsuleDetailView: View {
                     playbackControls
                     metadata
                     developingTimeline
+                    prevNextNav
                 }
                 .padding(VoxlueSpacing.lg)
             }
@@ -498,6 +502,64 @@ struct CapsuleDetailView: View {
     private func markOpenedIfNeeded() {
         guard capsule.state != .opened else { return }
         try? CapsuleStore(context: context).updateState(capsule, to: .opened)
+    }
+
+    // MARK: - 上一枚 / 下一枚
+
+    /// 在 createdAt 倒序的全表里定位当前胶囊。删除后可能是 nil —— 上层会 dismiss。
+    private var currentIndex: Int? {
+        allCapsules.firstIndex(where: { $0.id == capsule.id })
+    }
+
+    /// 「上一枚」= 倒序表里的前一项（更新的一枚）；边界返回 nil。
+    private var previousCapsule: VoxlueData.Capsule? {
+        guard let idx = currentIndex, idx > 0 else { return nil }
+        return allCapsules[idx - 1]
+    }
+
+    /// 「下一枚」= 倒序表里的后一项（更早的一枚）；边界返回 nil。
+    private var nextCapsule: VoxlueData.Capsule? {
+        guard let idx = currentIndex, idx + 1 < allCapsules.count else { return nil }
+        return allCapsules[idx + 1]
+    }
+
+    /// 底部两枚朱红药丸：左前 / 右后。push 新的 CapsuleDetailView，
+    /// 返回时沿 NavigationStack 一路回退。
+    private var prevNextNav: some View {
+        HStack(spacing: VoxlueSpacing.lg) {
+            if let prev = previousCapsule {
+                NavigationLink {
+                    CapsuleDetailView(capsule: prev)
+                } label: {
+                    navPill(systemImage: "chevron.left", text: "上一枚")
+                }
+                .buttonStyle(.plain)
+            }
+            Spacer()
+            if let next = nextCapsule {
+                NavigationLink {
+                    CapsuleDetailView(capsule: next)
+                } label: {
+                    navPill(systemImage: "chevron.right", text: "下一枚", trailing: true)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.top, VoxlueSpacing.lg)
+    }
+
+    private func navPill(systemImage: String, text: String, trailing: Bool = false) -> some View {
+        HStack(spacing: VoxlueSpacing.xs) {
+            if !trailing { Image(systemName: systemImage) }
+            Text(text)
+            if trailing { Image(systemName: systemImage) }
+        }
+        .font(VoxlueTypography.caption)
+        .foregroundStyle(VoxlueColor.vermillion)
+        .padding(.horizontal, VoxlueSpacing.md)
+        .padding(.vertical, VoxlueSpacing.sm)
+        .background(VoxlueColor.paperHighlight, in: Capsule())
+        .voxlueShadow(.paper)
     }
 
     private var displayTitle: String {
