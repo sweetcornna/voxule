@@ -90,9 +90,12 @@ struct CircleListView: View {
 
     private func errorState(_ message: String) -> some View {
         VStack(spacing: VoxlueSpacing.md) {
+            // §4.11 实现卡：error 走「红 icloud icon」—— darkroomGray 太消极，
+            // 朱红 icon 让用户一眼识别这是 iCloud 通信问题，不是空状态。
+            // 文字仍走 ink + graphite，icon 是唯一的色温热点。
             Image(systemName: "exclamationmark.icloud")
                 .font(.system(size: 44))
-                .foregroundStyle(VoxlueColor.darkroomGray)
+                .foregroundStyle(VoxlueColor.vermillion)
             Text("声音圈没取到")
                 .font(VoxlueTypography.heading)
                 .foregroundStyle(VoxlueColor.ink)
