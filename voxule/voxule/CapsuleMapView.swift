@@ -80,21 +80,29 @@ struct CapsuleMapView: View {
             }
         }
         .mapStyle(.standard(elevation: .flat))
+        // iOS 17+ 原生地图控件：定位按钮 + 指南针 + 比例尺。
+        // 自动对齐 safe area，按 mapStyle 自适应配色，省一枚自绘 FAB。
+        // Info.plist 已配 NSLocationWhenInUseUsageDescription，权限弹窗就绪。
+        .mapControls {
+            MapUserLocationButton()
+            MapCompass()
+            MapScaleView()
+        }
         .navigationTitle("埋下的地方")
         // 不再用全屏 Color.clear 背板做「点空白收起」—— 它会吃掉 Map 自己的
         // pan / zoom 手势，地图在气泡打开期间瘫痪。
         // 收起入口：同一枚 pin 二次点击（toggle）+ 气泡右上 ✕ + 「看这枚」push 时清空。
-        .overlay(alignment: .bottom) {
+        .overlay(alignment: .center) {
             if pins.isEmpty {
-                Text("还没有埋在某个地点的相")
-                    .font(VoxlueTypography.caption)
-                    .foregroundStyle(VoxlueColor.graphite)
-                    .padding(.horizontal, VoxlueSpacing.md)
-                    .padding(.vertical, VoxlueSpacing.sm)
-                    .background(VoxlueColor.paperHighlight,
-                                in: RoundedRectangle(cornerRadius: VoxlueRadius.glass))
-                    .voxlueShadow(.paper)
-                    .padding(.bottom, VoxlueSpacing.xl)
+                // 空状态从「底部小 chip」升级成「居中纸卡」：
+                // 标题用思源宋告诉「这里目前空着」，朱红 Caveat 手写体补一句
+                // 操作引导。卡只占中央 ~280pt，留出地图四周可拖、可缩。
+                EmptyMapPaperCard()
+                    .frame(maxWidth: 280)
+                    .padding(.horizontal, VoxlueSpacing.lg)
+                    // allowsHitTesting(false) 让拖动 / 双指缩放穿透纸卡到地图，
+                    // 避免 PR #19 的全屏背板吞手势教训。
+                    .allowsHitTesting(false)
             }
         }
         .overlay(alignment: .bottom) {
@@ -196,6 +204,27 @@ private struct PinDetailBubble: View {
         case .developing: .developing
         case .developed:  .developed
         case .opened:     .opened
+        }
+    }
+}
+
+/// 地图空状态纸卡 —— 居中浮在地图上，告诉用户「这里目前空着」。
+/// 思源宋标题 + Caveat 朱红手写体引导，PaperCard 自带纸质阴影 + 描边。
+private struct EmptyMapPaperCard: View {
+    var body: some View {
+        PaperCard {
+            VStack(alignment: .leading, spacing: VoxlueSpacing.sm) {
+                Text("还没有埋在地图上")
+                    .font(VoxlueTypography.serifTitle)
+                    .foregroundStyle(VoxlueColor.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text("装裱时选「地点锁」，胶囊就会落在这里。")
+                    .font(VoxlueTypography.annotation)
+                    .foregroundStyle(VoxlueColor.vermillion)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }
