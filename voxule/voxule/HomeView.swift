@@ -30,6 +30,15 @@ struct HomeView: View {
         allCapsules.filter { $0.state == .developing }
     }
 
+    // 顶部统计 —— 三个数字像档案盒的封签条，给用户一个「我攒了多少」的归档感。
+    // 「待听」把 .developing 和 .developed 合并：用户感知里都是「等我」的同一档。
+    private var buriedCount: Int { allCapsules.filter { $0.state == .buried }.count }
+    private var developingOrDevelopedCount: Int {
+        allCapsules.filter { $0.state == .developing || $0.state == .developed }.count
+    }
+    private var openedCount: Int { allCapsules.filter { $0.state == .opened }.count }
+    private var hasAnyCapsule: Bool { !allCapsules.isEmpty }
+
     private static var recentDescriptor: FetchDescriptor<VoxlueData.Capsule> {
         var descriptor = FetchDescriptor<VoxlueData.Capsule>(
             sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
@@ -71,6 +80,9 @@ struct HomeView: View {
                         recentPreview(for: capsule)
                             .padding(.top, VoxlueSpacing.lg)
                     }
+
+                    statsLine
+                        .padding(.top, VoxlueSpacing.md)
 
                     Spacer()
                     // 有最近一枚预览时少压一个 Spacer，让 mic 仍居中视觉而不被压扁。
@@ -198,6 +210,36 @@ struct HomeView: View {
             .accessibilityElement(children: .combine)
             .accessibilityLabel("最近一枚：\(capsule.title.isEmpty ? "（无题）" : capsule.title)")
         }
+    }
+
+    /// 档案统计条 —— Space Mono 跑出像胶卷边沿打孔的标签感，
+    /// 数字之间用「·」当分隔点；全空（hasAnyCapsule == false）就整条不出，
+    /// 避免新用户看见 0 · 0 · 0 的尴尬冷场。
+    @ViewBuilder
+    private var statsLine: some View {
+        if hasAnyCapsule {
+            HStack(spacing: VoxlueSpacing.sm) {
+                statChip(label: "埋下", count: buriedCount)
+                dot
+                statChip(label: "待听", count: developingOrDevelopedCount)
+                dot
+                statChip(label: "已听", count: openedCount)
+            }
+            .font(VoxlueTypography.meta)
+            .foregroundStyle(VoxlueColor.graphite)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("埋下 \(buriedCount)，待听 \(developingOrDevelopedCount)，已听 \(openedCount)")
+        }
+    }
+
+    private func statChip(label: String, count: Int) -> some View {
+        Text("\(label) \(count)")
+    }
+
+    private var dot: some View {
+        Text("·")
+            .font(VoxlueTypography.meta)
+            .foregroundStyle(VoxlueColor.darkroomGray)
     }
 }
 
