@@ -69,6 +69,22 @@ struct SurfacedCapsuleView: View {
                             .tint(VoxlueColor.vermillion)
                             .controlSize(.large)
                             .padding(.top, VoxlueSpacing.xs)
+
+                            if player.progress > 0 {
+                                Button {
+                                    player.seek(toProgress: 0)
+                                    player.play()
+                                } label: {
+                                    HStack(spacing: VoxlueSpacing.xs) {
+                                        Image(systemName: "arrow.counterclockwise")
+                                        Text("再听一次")
+                                    }
+                                    .font(VoxlueTypography.caption)
+                                    .foregroundStyle(VoxlueColor.vermillion)
+                                }
+                                .buttonStyle(.plain)
+                                .padding(.top, VoxlueSpacing.xs)
+                            }
                         }
                     }
                     .frostReveal(developed: developed)
