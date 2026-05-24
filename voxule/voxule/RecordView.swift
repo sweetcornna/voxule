@@ -15,6 +15,7 @@ struct RecordView: View {
     @State private var result: RecordingResult?
     @State private var sampleTimer: Timer?
     @State private var isVisible = false
+    @State private var confirmingCancel = false
 
     private var recorder: any AudioRecording { env.recorder }
 
@@ -112,12 +113,25 @@ struct RecordView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("取消") {
-                        recorder.cancel()
-                        dismiss()
+                        if recorder.elapsed > 5 {
+                            confirmingCancel = true
+                        } else {
+                            recorder.cancel()
+                            dismiss()
+                        }
                     }
                     // 与录音按钮同朱红 —— 让取消/录音两键在暗房里彼此呼应。
                     .foregroundStyle(VoxlueColor.vermillion)
                 }
+            }
+            .confirmationDialog("丢掉这段录音？", isPresented: $confirmingCancel, titleVisibility: .visible) {
+                Button("丢掉", role: .destructive) {
+                    recorder.cancel()
+                    dismiss()
+                }
+                Button("继续录", role: .cancel) {}
+            } message: {
+                Text("已经录了 \(Int(recorder.elapsed)) 秒，丢了就没了。")
             }
             .alert("没有麦克风权限", isPresented: $permissionDenied) {
                 Button("好") {}
