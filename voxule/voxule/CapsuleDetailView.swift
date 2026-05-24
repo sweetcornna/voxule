@@ -20,6 +20,7 @@ struct CapsuleDetailView: View {
     @State private var editingNote = ""
     @State private var showingRename = false
     @State private var editingTitle = ""
+    @State private var showingCirclePicker = false
 
     private var player: any AudioPlaying { env.player }
 
@@ -55,6 +56,48 @@ struct CapsuleDetailView: View {
         }
         .sheet(isPresented: $showingNoteEditor) { noteEditor }
         .sheet(isPresented: $showingRename) { renameSheet }
+        .sheet(isPresented: $showingCirclePicker) {
+            NavigationStack {
+                Form {
+                    Section {
+                        CirclePickerView(selectedCircleID: Binding(
+                            get: { capsule.circleID },
+                            set: { newID in
+                                capsule.circleID = newID
+                                capsule.recipient = newID == nil ? .me : .circle
+                                try? context.save()
+                            }
+                        ))
+                    } header: {
+                        Text("移到").font(VoxlueTypography.caption).foregroundStyle(VoxlueColor.graphite).textCase(nil)
+                    } footer: {
+                        Text("移到「自己」会从所有声音圈里取消归属。")
+                            .font(VoxlueTypography.caption)
+                            .foregroundStyle(VoxlueColor.darkroomGray)
+                    }
+
+                    Section {
+                        Button("移到「自己」", role: .destructive) {
+                            capsule.circleID = nil
+                            capsule.recipient = .me
+                            try? context.save()
+                            showingCirclePicker = false
+                        }
+                    }
+                }
+                .scrollContentBackground(.hidden)
+                .background(PaperBackground().ignoresSafeArea())
+                .navigationTitle("改个圈")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("好") { showingCirclePicker = false }
+                            .font(VoxlueTypography.serifBody)
+                            .foregroundStyle(VoxlueColor.vermillion)
+                    }
+                }
+            }
+        }
     }
 
     /// 顶栏右上：分享 + 划掉。分享只在确有音频时露出。
@@ -78,6 +121,11 @@ struct CapsuleDetailView: View {
                     showingRename = true
                 } label: {
                     Label("改个名", systemImage: "pencil")
+                }
+                Button {
+                    showingCirclePicker = true
+                } label: {
+                    Label("改个圈", systemImage: "person.2.wave.2")
                 }
                 Divider()
                 Button(role: .destructive) {
