@@ -69,9 +69,15 @@ struct FramingView: View {
                                in: Date()..., displayedComponents: [.date])
                         .font(VoxlueTypography.serifBody)
                 }
-                Text(lockHint)
-                    .font(VoxlueTypography.caption)
-                    .foregroundStyle(VoxlueColor.graphite)
+                VStack(alignment: .leading, spacing: VoxlueSpacing.xs) {
+                    Text(lockHintTitle)
+                        .font(VoxlueTypography.caption)
+                        .foregroundStyle(VoxlueColor.ink)
+                    Text(lockHintExample)
+                        .font(VoxlueTypography.caption)
+                        .foregroundStyle(VoxlueColor.graphite)
+                        .padding(.leading, VoxlueSpacing.md)
+                }
 
                 // 让用户在按「埋下」之前，先看到落地后会盖上的朱章 ——
                 // 隐喻才读得通：装裱 → 盖章 → 入库。
@@ -157,11 +163,21 @@ struct FramingView: View {
         return String(format: "%02d:%02d", total / 60, total % 60)
     }
 
-    private var lockHint: String {
+    /// 第一行：这把锁的作用 —— 用户看一眼就知道「它什么时候会响」。
+    private var lockHintTitle: String {
         switch lockKind {
-        case .place: "走到某个地方，它才会显影。地点在地图里细选 —— 计划 03 接入。"
-        case .date: "到选定那天，它自己浮现。"
-        case .mood: "在你需要的时候，它会被轻轻送来。"
+        case .place: "地点锁：走到某个地方时，它会自己显影。"
+        case .date: "时间锁：到选定那天才浮现。"
+        case .mood: "情绪锁：voxlue 觉得合适时把它送来。"
+        }
+    }
+
+    /// 第二行：一个具体例子 —— 抽象规则配场景，用户立刻有画面感。
+    private var lockHintExample: String {
+        switch lockKind {
+        case .place: "像在故宫门口录一句「奶奶，我又来这了」。"
+        case .date: "像给一年后的自己留一段话。"
+        case .mood: "像在某个安静的晚上，外婆的口头禅突然浮现。"
         }
     }
 
