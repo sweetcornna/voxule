@@ -85,6 +85,22 @@ struct SurfacedCapsuleView: View {
                                 .buttonStyle(.plain)
                                 .padding(.top, VoxlueSpacing.xs)
                             }
+
+                            if let data = capsule.audioData, !data.isEmpty {
+                                ShareLink(
+                                    item: data,
+                                    preview: SharePreview(capsule.title.isEmpty ? "（无题）" : capsule.title)
+                                ) {
+                                    HStack(spacing: VoxlueSpacing.xs) {
+                                        Image(systemName: "square.and.arrow.up")
+                                        Text("分享出去")
+                                    }
+                                    .font(VoxlueTypography.caption)
+                                    .foregroundStyle(VoxlueColor.graphite)
+                                }
+                                .accessibilityLabel("分享这一段")
+                                .padding(.top, VoxlueSpacing.xs)
+                            }
                         }
                     }
                     .frostReveal(developed: developed)
