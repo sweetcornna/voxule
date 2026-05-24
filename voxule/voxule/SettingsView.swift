@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import VoxlueDesign
 import VoxlueServices
 
@@ -56,6 +57,22 @@ struct SettingsView: View {
                 sectionHeader("项目")
             } footer: {
                 Text("voxlue 是开源的，欢迎来逛。")
+                    .font(VoxlueTypography.caption)
+                    .foregroundStyle(VoxlueColor.darkroomGray)
+            }
+
+            Section {
+                Button {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                } label: {
+                    settingsRow(icon: "gear.badge", text: "系统设置")
+                }
+            } header: {
+                sectionHeader("系统")
+            } footer: {
+                Text("通知、定位、麦克风、HealthKit 权限都在系统设置里调整。")
                     .font(VoxlueTypography.caption)
                     .foregroundStyle(VoxlueColor.darkroomGray)
             }
