@@ -6,6 +6,7 @@ import VoxlueServices
 /// 浮现频率（cadence）与陪伴授权（HealthKit）。
 struct SettingsView: View {
     @Environment(HealthEnv.self) private var healthEnv
+    @State private var showOnboarding = false
 
     var body: some View {
         Form {
@@ -34,6 +35,12 @@ struct SettingsView: View {
                 } label: {
                     settingsRow(icon: "info.circle", text: "关于 voxlue")
                 }
+                Button {
+                    showOnboarding = true
+                } label: {
+                    settingsRow(icon: "sparkles", text: "再看一遍 voxlue")
+                }
+                .foregroundStyle(VoxlueColor.ink) // keep tap target neutral
             } header: {
                 sectionHeader("关于")
             }
@@ -57,6 +64,9 @@ struct SettingsView: View {
         .scrollContentBackground(.hidden)
         .background(VoxlueColor.paper.ignoresSafeArea())
         .navigationTitle("设置")
+        .sheet(isPresented: $showOnboarding) {
+            OnboardingView()
+        }
     }
 
     /// 行内 icon + 思源宋正文。设置子页统一形态。
