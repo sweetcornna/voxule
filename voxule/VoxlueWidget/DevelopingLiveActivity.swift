@@ -23,7 +23,8 @@ struct DevelopingLiveActivity: Widget {
                 }
                 DynamicIslandExpandedRegion(.center) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("显影中")
+                        // §2.2 文案契约：浮现的灵动岛文案永远是这一句。
+                        Text("这里有一张你洗过一次的相")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                         Text(context.attributes.title)
@@ -60,7 +61,8 @@ struct DevelopingLiveActivity: Widget {
             HStack {
                 Image(systemName: "photo.on.rectangle.angled")
                     .foregroundStyle(.white)
-                Text("一张相正在显影")
+                // §2.2 文案契约：浮现的灵动岛文案永远是这一句。
+                Text("这里有一张你洗过一次的相")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.white)
                 Spacer()
