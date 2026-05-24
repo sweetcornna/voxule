@@ -18,6 +18,24 @@ struct HealthAuthorizationView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: VoxlueSpacing.xl) {
+                    ZStack {
+                        Circle()
+                            .fill(VoxlueColor.vermillion.opacity(0.35))
+                            .frame(width: 60, height: 60)
+                            .offset(x: -22, y: 0)
+                        Circle()
+                            .fill(VoxlueColor.graphite.opacity(0.45))
+                            .frame(width: 60, height: 60)
+                            .offset(x: 0, y: -10)
+                        Circle()
+                            .fill(VoxlueColor.darkroomGray.opacity(0.55))
+                            .frame(width: 60, height: 60)
+                            .offset(x: 22, y: 0)
+                    }
+                    .frame(width: 120, height: 70)
+                    .padding(.bottom, VoxlueSpacing.md)
+                    .accessibilityHidden(true)
+
                     Text("让陪伴恰到好处")
                         .font(VoxlueTypography.heading)
                         .foregroundStyle(VoxlueColor.ink)
