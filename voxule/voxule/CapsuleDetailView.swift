@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UIKit
 import VoxlueData
 import VoxlueDesign
 import VoxlueServices
@@ -24,6 +25,8 @@ struct CapsuleDetailView: View {
     @State private var showingRename = false
     @State private var editingTitle = ""
     @State private var showingCirclePicker = false
+    /// 上次触 haptic 时的 progress —— 用来按 5% 步长去抖。
+    @State private var lastHapticProgress: Double = 0
 
     private var player: any AudioPlaying { env.player }
 
@@ -195,7 +198,15 @@ struct CapsuleDetailView: View {
                     Slider(
                         value: Binding(
                             get: { player.progress },
-                            set: { player.seek(toProgress: $0) }
+                            set: { newValue in
+                                // 每跨 5% 触一次 haptic —— 拖到位有节奏，不会满频抖。
+                                let step = 0.05
+                                if abs(newValue - lastHapticProgress) >= step {
+                                    UISelectionFeedbackGenerator().selectionChanged()
+                                    lastHapticProgress = newValue
+                                }
+                                player.seek(toProgress: newValue)
+                            }
                         ),
                         in: 0...1
                     )
