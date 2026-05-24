@@ -193,6 +193,9 @@ struct HomeView: View {
             .accessibilityHint("点按或长按开始冲洗")
             .accessibilityAddTraits(.isButton)
             .onTapGesture {
+                // tap 也给一记 light haptic —— 不给的话用户短按会觉得「按了没反应」，
+                // 长按反而有 medium 反馈，体验割裂。light 比 medium 弱一档，正好区分两种意图。
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 isRecording = true
             }
             .onLongPressGesture(minimumDuration: 0.4, maximumDistance: 24) {
@@ -201,6 +204,11 @@ struct HomeView: View {
                 isPressing = false
                 isRecording = true
             } onPressingChanged: { pressing in
+                // 手指刚贴上 mic 就来一记 selection 脉冲 —— 比 impact 更轻、更「电子」，
+                // 给用户「我感知到你了」的物理回授，不会跟后面 0.4s 的 medium 撞车。
+                if pressing {
+                    UISelectionFeedbackGenerator().selectionChanged()
+                }
                 isPressing = pressing
             }
     }
