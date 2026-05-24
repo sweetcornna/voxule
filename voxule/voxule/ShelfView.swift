@@ -94,7 +94,11 @@ struct ShelfView: View {
             Text("样片墙还空着")
                 .font(VoxlueTypography.heading)
                 .foregroundStyle(VoxlueColor.ink)
-            MarginNote("去首页冲一张声音。")
+            // 居中 VStack 里不用 MarginNote 的左侧朱红短画 —— 会把视觉重心拽偏。
+            Text("去首页冲一张声音。")
+                .font(VoxlueTypography.annotation)
+                .foregroundStyle(VoxlueColor.vermillion)
+                .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -106,7 +110,10 @@ struct ShelfView: View {
             Text("找不到匹配的声音")
                 .font(VoxlueTypography.serifBody)
                 .foregroundStyle(VoxlueColor.ink)
-            MarginNote("换个词试试。")
+            Text("换个词试试。")
+                .font(VoxlueTypography.annotation)
+                .foregroundStyle(VoxlueColor.vermillion)
+                .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

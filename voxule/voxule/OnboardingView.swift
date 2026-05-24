@@ -186,11 +186,15 @@ private struct PageThree: View {
                 .lineSpacing(VoxlueTypography.Step.body.lineSpacing)
                 .padding(.horizontal, VoxlueSpacing.xl)
 
-            HStack {
-                Spacer()
-                MarginNote("— 这是陪伴，不是提醒事项。")
-            }
-            .padding(.horizontal, VoxlueSpacing.xl)
+            // 独立居中场景不再用 MarginNote：原写法「— xxx」文本前缀 + MarginNote
+            // 自带朱红短画 = 双重 dash，且 HStack{Spacer; MarginNote} 把整块推到右侧、
+            // 与上方居中正文的中轴不齐。改纯居中 Caveat。
+            Text("这是陪伴，不是提醒事项。")
+                .font(VoxlueTypography.annotation)
+                .foregroundStyle(VoxlueColor.vermillion)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, VoxlueSpacing.xl)
 
             Spacer()
             Spacer()

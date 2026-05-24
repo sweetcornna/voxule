@@ -99,7 +99,11 @@ struct CircleListView: View {
             Text("还没有声音圈")
                 .font(VoxlueTypography.heading)
                 .foregroundStyle(VoxlueColor.ink)
-            MarginNote("圈起来，几个人就够。")
+            // 居中 VStack 里不用 MarginNote 的左侧朱红短画 —— 会把视觉重心拽偏。
+            Text("圈起来，几个人就够。")
+                .font(VoxlueTypography.annotation)
+                .foregroundStyle(VoxlueColor.vermillion)
+                .multilineTextAlignment(.center)
             Button("建一个声音圈") { showCreateSheet = true }
                 .font(VoxlueTypography.serifBody)
                 .buttonStyle(.borderedProminent)
