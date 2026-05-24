@@ -9,7 +9,7 @@ struct AcceptInvitationView: View {
 
     var body: some View {
         ZStack {
-            VoxlueColor.paper.ignoresSafeArea()
+            PaperBackground().ignoresSafeArea()
 
             VStack(spacing: VoxlueSpacing.xl) {
                 switch router.acceptance {
@@ -24,9 +24,8 @@ struct AcceptInvitationView: View {
                         .foregroundStyle(VoxlueColor.ink)
 
                 case .accepted:
-                    Image(systemName: "checkmark.seal")
-                        .font(.system(size: 56))
-                        .foregroundStyle(VoxlueColor.vermillion)
+                    // 进圈 = 一个声音圈给你盖了枚朱章。
+                    SealStamp(.developed)
                     Text("你已加入这个声音圈")
                         .font(VoxlueTypography.heading)
                         .foregroundStyle(VoxlueColor.ink)
