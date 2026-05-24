@@ -18,8 +18,21 @@ struct CircleDetailView: View {
         (circle.members ?? []).sorted { $0.joinedAt < $1.joinedAt }
     }
 
+    private var metaLine: String {
+        let count = (circle.members ?? []).count
+        let date = circle.createdAt.formatted(date: .abbreviated, time: .omitted)
+        return "\(count) 位成员 · 建于 \(date)"
+    }
+
     var body: some View {
         List {
+            Section {
+                headerCard
+            }
+            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: VoxlueSpacing.md, trailing: 0))
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+
             Section {
                 CircleCapsulesList(circleID: circle.id)
             } header: {
@@ -83,6 +96,34 @@ struct CircleDetailView: View {
         }
         .sheet(item: $invitation) { invitation in
             ShareInvitationSheet(url: invitation.url)
+        }
+    }
+
+    private var headerCard: some View {
+        PaperCard {
+            HStack(alignment: .top, spacing: VoxlueSpacing.md) {
+                VStack(alignment: .leading, spacing: VoxlueSpacing.xs) {
+                    Text(circle.name.isEmpty ? "（未命名的圈）" : circle.name)
+                        .font(VoxlueTypography.serifTitle)
+                        .foregroundStyle(VoxlueColor.ink)
+                    Text(metaLine)
+                        .font(VoxlueTypography.meta)
+                        .foregroundStyle(VoxlueColor.graphite)
+                }
+                Spacer(minLength: VoxlueSpacing.sm)
+                Text("圈")
+                    .font(VoxlueTypography.meta)
+                    .tracking(2)
+                    .foregroundStyle(VoxlueColor.vermillion)
+                    .padding(.horizontal, VoxlueSpacing.sm)
+                    .padding(.vertical, VoxlueSpacing.xs)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: VoxlueRadius.stamp, style: .continuous)
+                            .strokeBorder(VoxlueColor.vermillion, lineWidth: 1.5)
+                    )
+                    .rotationEffect(.degrees(-8))
+                    .opacity(0.88)
+            }
         }
     }
 
