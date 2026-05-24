@@ -232,13 +232,17 @@ struct HomeView: View {
     /// 按状态自动走 PhotoCard / NegativeCard，点击进 CapsuleDetailView。
     @ViewBuilder
     private func recentPreview(for capsule: VoxlueData.Capsule) -> some View {
-        // MarginNote 与 NegativeCard 绑成同宽 VStack 左对齐，共享一条左边轴 ——
-        // 之前 MarginNote 居中、NegativeCard 居中但内容 280pt 宽，两者各自独立居中，
-        // 朱红引线和卡片的左边缘不在一条线上，是「批注与相片对话」语义里最别扭的那种偏移。
+        // 「最近的一段」与缩放后的 NegativeCard 共享同一左边轴：
+        // CapsuleRow scaleEffect(0.75) 后内 padding 从 16 缩到 12pt，
+        // 标签左 padding 也设 12pt，标签字体起点与卡片标题起点垂直对齐。
+        // 不再用 MarginNote —— 左侧朱红短画与下方卡片的左缘形成双线，反而扰乱。
         VStack(alignment: .leading, spacing: VoxlueSpacing.sm) {
             // 显示的可能是 .buried / .developing / .developed / .opened 任一状态，
             // 不一定刚埋下，所以不说「埋下的」。
-            MarginNote("最近的一段")
+            Text("最近的一段")
+                .font(VoxlueTypography.annotation)
+                .foregroundStyle(VoxlueColor.vermillion)
+                .padding(.leading, 12)
 
             NavigationLink {
                 CapsuleDetailView(capsule: capsule)
@@ -254,8 +258,7 @@ struct HomeView: View {
             .accessibilityElement(children: .combine)
             .accessibilityLabel("最近一枚：\(capsule.title.isEmpty ? "（无题）" : capsule.title)")
         }
-        // 整个 VStack 限到 280pt 再居中放进父 VStack —— 这样 MarginNote 与卡片
-        // 都贴着这块 280pt 的左缘排，整体仍居中。
+        // 整个 VStack 限到 280pt 再居中放进父 VStack —— 标签 + 卡片同一左轴。
         .frame(maxWidth: 280)
     }
 

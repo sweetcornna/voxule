@@ -15,9 +15,14 @@ struct AboutView: View {
                     tagline
                     philosophy
                     paletteStrip
-                    // MarginNote 内部已 HStack 左对齐内容；不再外套 maxWidth: .infinity，
-                    // 与 HomeView / ShelfView / CircleListView 等其余落地保持一致。
-                    MarginNote("— 这是陪伴，不是提醒事项。")
+                    // 独立居中场景不再用 MarginNote ——「— xxx」文本和 MarginNote
+                    // 自带的朱红短画会形成双重 dash，且 dash 在左、文字在右导致整体
+                    // 重心偏右、与居中容器不和谐。改纯居中 Caveat 文字，保留朱红声。
+                    Text("这是陪伴，不是提醒事项。")
+                        .font(VoxlueTypography.annotation)
+                        .foregroundStyle(VoxlueColor.vermillion)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
                     catalogLink
                     version
                 }
