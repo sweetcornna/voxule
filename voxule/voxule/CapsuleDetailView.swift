@@ -276,6 +276,7 @@ struct CapsuleDetailView: View {
     private var metadata: some View {
         PaperCard {
             VStack(alignment: .leading, spacing: VoxlueSpacing.sm) {
+                metadataRow(label: "锁", value: lockDetail)
                 if let place = capsule.placeName {
                     metadataRow(label: "录于", value: place)
                 }
@@ -592,6 +593,25 @@ struct CapsuleDetailView: View {
         case .place: "地点锁"
         case .date: "时间锁"
         case .mood: "情绪锁"
+        }
+    }
+
+    private var lockDetail: String {
+        switch capsule.lock {
+        case .place(_, _, let radius, let placeName):
+            let name = placeName.isEmpty ? "某个地方" : placeName
+            return "走到「\(name)」附近 \(Int(radius))m"
+        case .date(let target):
+            let now = Date()
+            if target > now {
+                let days = Calendar.current.dateComponents([.day], from: now, to: target).day ?? 0
+                return days == 0 ? "今天显影" : "还有 \(days) 天显影"
+            } else {
+                let days = Calendar.current.dateComponents([.day], from: target, to: now).day ?? 0
+                return days == 0 ? "今天到期" : "已过期 \(days) 天"
+            }
+        case .mood:
+            return "voxlue 觉得合适时浮现"
         }
     }
 
