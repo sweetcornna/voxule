@@ -113,8 +113,7 @@ private struct PageOne: View {
             Spacer()
 
             Text("voxlue")
-                .font(VoxlueTypography.display)
-                .italic()
+                .font(VoxlueTypography.displayHero)
                 .foregroundStyle(VoxlueColor.vermillion)
 
             Text("声音的暗房")
