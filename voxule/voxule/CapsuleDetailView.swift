@@ -30,6 +30,7 @@ struct CapsuleDetailView: View {
                     photoHero
                     playbackControls
                     metadata
+                    developingTimeline
                 }
                 .padding(VoxlueSpacing.lg)
             }
@@ -249,6 +250,65 @@ struct CapsuleDetailView: View {
                     value: capsule.createdAt.formatted(date: .abbreviated, time: .shortened)
                 )
             }
+        }
+    }
+
+    /// 显影 timeline —— 朱红两点：埋下 / 听到。
+    /// 「听到」只在 openedAt 有值时才长出来；只有「埋下」时省略连接线，
+    /// 免得空荡荡一根线吊在那。
+    private var developingTimeline: some View {
+        let hasOpened = capsule.openedAt != nil
+
+        return PaperCard {
+            HStack(alignment: .top, spacing: VoxlueSpacing.md) {
+                // 左侧 rail —— 圆点 + 细线。固定 8pt 宽度，让右列文字对齐稳。
+                VStack(spacing: 0) {
+                    Circle()
+                        .fill(VoxlueColor.vermillion)
+                        .frame(width: 8, height: 8)
+
+                    if hasOpened {
+                        Rectangle()
+                            .fill(VoxlueColor.vermillion.opacity(0.5))
+                            .frame(width: 2)
+                            .frame(maxHeight: .infinity)
+
+                        Circle()
+                            .fill(VoxlueColor.vermillion)
+                            .frame(width: 8, height: 8)
+                    }
+                }
+                .frame(width: 8)
+                .padding(.top, 4) // 让圆点和右侧 caption 的 baseline 视觉对齐
+
+                // 右侧内容 —— 每个里程碑：caption 标签 + meta 日期。
+                VStack(alignment: .leading, spacing: VoxlueSpacing.md) {
+                    timelineEntry(
+                        label: "埋下",
+                        date: capsule.createdAt
+                    )
+
+                    if let openedAt = capsule.openedAt {
+                        timelineEntry(
+                            label: "听到",
+                            date: openedAt
+                        )
+                    }
+                }
+
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    private func timelineEntry(label: String, date: Date) -> some View {
+        VStack(alignment: .leading, spacing: VoxlueSpacing.xs) {
+            Text(label)
+                .font(VoxlueTypography.caption)
+                .foregroundStyle(VoxlueColor.ink)
+            Text(date.formatted(date: .abbreviated, time: .shortened))
+                .font(VoxlueTypography.meta)
+                .foregroundStyle(VoxlueColor.graphite)
         }
     }
 
