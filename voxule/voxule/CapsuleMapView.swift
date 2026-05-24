@@ -157,6 +157,11 @@ private struct PinDetailBubble: View {
                     .foregroundStyle(VoxlueColor.graphite)
                     .lineLimit(1)
 
+                Text("埋于 \(capsule.createdAt.formatted(date: .abbreviated, time: .shortened))")
+                    .font(VoxlueTypography.meta)
+                    .foregroundStyle(VoxlueColor.darkroomGray)
+                    .lineLimit(1)
+
                 NavigationLink {
                     CapsuleDetailView(capsule: capsule)
                 } label: {
