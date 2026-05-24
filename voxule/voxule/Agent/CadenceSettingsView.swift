@@ -55,6 +55,19 @@ enum CadenceSetting: String, CaseIterable, Identifiable {
 struct CadenceSettingsView: View {
     @State private var selection = CadenceSetting.current
 
+    /// 把 cadence 的秒数化成「约 N 天 / 小时 / 分钟」。`.off` 不显示。
+    private static func intervalLabel(_ cadence: CadenceSetting) -> String? {
+        guard cadence != .off else { return nil }
+        let seconds = cadence.interval
+        if seconds >= 86_400 {
+            return "约 \(Int(seconds / 86_400)) 天"
+        } else if seconds >= 3_600 {
+            return "约 \(Int(seconds / 3_600)) 小时"
+        } else {
+            return "约 \(Int(seconds / 60)) 分钟"
+        }
+    }
+
     var body: some View {
         Form {
             Section {
@@ -78,6 +91,11 @@ struct CadenceSettingsView: View {
                                 Text(cadence.caption)
                                     .font(VoxlueTypography.caption)
                                     .foregroundStyle(VoxlueColor.graphite)
+                                if let intervalText = Self.intervalLabel(cadence) {
+                                    Text("下次浮现：\(intervalText)后")
+                                        .font(VoxlueTypography.meta)
+                                        .foregroundStyle(VoxlueColor.darkroomGray)
+                                }
                             }
                             Spacer()
                             if cadence == selection {
