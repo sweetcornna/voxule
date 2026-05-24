@@ -48,8 +48,24 @@ struct OnboardingView: View {
     }
 
     /// 底部行动条 —— 朱红「开始」全宽 borderedProminent；前两页底部「跳过」灰小字。
+    /// `page > 0` 时主按钮上方再挂一行「上一页」（左对齐石墨小字），方便回看。
     private var bottomBar: some View {
         VStack(spacing: VoxlueSpacing.md) {
+            if page > 0 {
+                Button {
+                    withAnimation { page -= 1 }
+                } label: {
+                    HStack(spacing: VoxlueSpacing.xs) {
+                        Image(systemName: "chevron.left")
+                        Text("上一页")
+                    }
+                    .font(VoxlueTypography.caption)
+                    .foregroundStyle(VoxlueColor.graphite)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, VoxlueSpacing.lg)
+            }
+
             Button {
                 // 前两页：滑下一页；末页：写下「看过了」并收工。
                 if page < 2 {
