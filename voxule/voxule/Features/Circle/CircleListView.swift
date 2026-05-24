@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 import VoxlueData
 import VoxlueDesign
 import VoxlueServices
@@ -6,6 +7,9 @@ import VoxlueServices
 /// 声音圈列表 —— 自建的与受邀加入的圈都在这里。
 struct CircleListView: View {
     @Environment(ServiceContainer.self) private var services
+
+    @Query(sort: \VoxlueData.Capsule.createdAt, order: .reverse)
+    private var allCapsules: [VoxlueData.Capsule]
 
     @State private var circles: [VoxlueData.Circle] = []
     @State private var isLoading = true
@@ -109,7 +113,10 @@ struct CircleListView: View {
     private var circlesList: some View {
         List(circles) { circle in
             NavigationLink(value: circle.id) {
-                CircleRow(circle: circle)
+                CircleRow(
+                    circle: circle,
+                    latestCapsuleTitle: latestTitle(forCircle: circle.id)
+                )
             }
             .buttonStyle(.plain)
             .listRowBackground(Color.clear)
@@ -123,6 +130,16 @@ struct CircleListView: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
+    }
+
+    /// 取该圈最新一颗胶囊的标题；无胶囊返回 nil，让行内不渲染那行。
+    /// allCapsules 已按 createdAt 倒序，first(where:) 即最新。
+    private func latestTitle(forCircle circleID: UUID) -> String? {
+        guard let capsule = allCapsules.first(where: { $0.circleID == circleID }) else {
+            return nil
+        }
+        let trimmed = capsule.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "（无题）" : trimmed
     }
 
     private func reload() async {
@@ -140,6 +157,7 @@ struct CircleListView: View {
 /// 列表里的一行圈 —— 纸卡风。
 private struct CircleRow: View {
     let circle: VoxlueData.Circle
+    let latestCapsuleTitle: String?
 
     private var memberCount: Int { circle.members?.count ?? 0 }
 
@@ -153,6 +171,12 @@ private struct CircleRow: View {
                     Text("\(memberCount) 位成员")
                         .font(VoxlueTypography.meta)
                         .foregroundStyle(VoxlueColor.graphite)
+                    if let title = latestCapsuleTitle {
+                        Text("最近一段：\(title)")
+                            .font(VoxlueTypography.meta)
+                            .foregroundStyle(VoxlueColor.graphite)
+                            .lineLimit(1)
+                    }
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
