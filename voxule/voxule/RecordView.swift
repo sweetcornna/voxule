@@ -19,17 +19,20 @@ struct RecordView: View {
 
     private var recorder: any AudioRecording { env.recorder }
 
-    /// 录音情绪 —— 闲置 / 录音中 / 录到 30s 之后。
-    /// long 只是软提示，录音不会自动停。
+    /// 录音情绪 —— 闲置 / 录音中 / 录到 30s 之后 / 录到 60s 之后。
+    /// long / longer 都只是软提示，录音不会自动停。
     private enum RecordingMood {
         case idle
         case recording
-        case long
+        case long      // ≥30s
+        case longer    // ≥60s
     }
 
     private var recordingMood: RecordingMood {
         guard recorder.isRecording else { return .idle }
-        return recorder.elapsed >= 30 ? .long : .recording
+        if recorder.elapsed >= 60 { return .longer }
+        if recorder.elapsed >= 30 { return .long }
+        return .recording
     }
 
     var body: some View {
@@ -84,7 +87,7 @@ struct RecordView: View {
                     }
                     .accessibilityLabel(recorder.isRecording ? "停止" : "开始冲洗")
 
-                    // 30s 是软提示，不是硬上限 —— 越过门槛就把灰小字换成朱红手写批注，
+                    // 30s / 60s 都是软提示，不是硬上限 —— 越过门槛就把灰小字换成朱红手写批注，
                     // 像冲洗师在样片边角随手记一句「差不多了」。录音继续，不打断。
                     Group {
                         switch recordingMood {
@@ -98,6 +101,8 @@ struct RecordView: View {
                                 .foregroundStyle(VoxlueColor.darkroomGray)
                         case .long:
                             MarginNote("30 秒，差不多了。")
+                        case .longer:
+                            MarginNote("再多就讲不完了。")
                         }
                     }
                     .animation(.easeInOut(duration: 0.6), value: recordingMood)
