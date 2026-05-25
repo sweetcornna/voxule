@@ -34,6 +34,11 @@ struct ShelfView: View {
     /// 残留 contactSheet 偏好破坏契约。）
     @AppStorage("shelf.layout") private var layoutRaw: String = ShelfLayout.list.rawValue
 
+    /// 首次切到 contact-sheet 形态时一次性提示长按手势 —— grid 里没有 List 的
+    /// 右滑入口，靠 contextMenu 兜底；iOS 用户习惯先试右滑，给个一次性 MarginNote
+    /// 提醒「长按可分享或划掉」。看完关一次即永久消失，不再骚扰。
+    @AppStorage("shelf.contactSheetHintSeen") private var contactSheetHintSeen: Bool = false
+
     private var layout: ShelfLayout {
         ShelfLayout(rawValue: layoutRaw) ?? .list
     }
@@ -307,6 +312,11 @@ struct ShelfView: View {
     private var contactSheetGrid: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: VoxlueSpacing.xl) {
+                if !contactSheetHintSeen {
+                    contactSheetHintBanner
+                        .padding(.horizontal, VoxlueSpacing.lg)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                }
                 // bucket 三段互不重复，Bucket 自身是稳定 identity；
                 // 用 \.offset 会让插入新片时第一段被整体 invalidate（diff 错位），
                 // grid 内所有 NavigationLink 被迫 rebuild、SealStamp 入场动画再跑一遍。
@@ -336,6 +346,30 @@ struct ShelfView: View {
                 }
             }
             .padding(.vertical, VoxlueSpacing.lg)
+        }
+    }
+
+    /// contact-sheet 首切提示横幅 —— MarginNote 形态 + 朱红「知道了」按钮，
+    /// 关一次写 @AppStorage，下次再切到 grid 不再出现。
+    /// grid 没 List 的右滑手势，靠 contextMenu 兜底；这条提示是把 iOS 用户
+    /// 「先试右滑」的肌肉记忆转向「长按」的一次性引导。
+    private var contactSheetHintBanner: some View {
+        HStack(alignment: .top, spacing: VoxlueSpacing.md) {
+            MarginNote("长按一张可分享或划掉")
+            Spacer(minLength: VoxlueSpacing.sm)
+            Button {
+                withAnimation(.easeOut(duration: 0.25)) {
+                    contactSheetHintSeen = true
+                }
+            } label: {
+                Text("知道了")
+                    .font(VoxlueTypography.caption)
+                    .foregroundStyle(VoxlueColor.vermillion)
+                    .padding(.horizontal, VoxlueSpacing.sm)
+                    .padding(.vertical, VoxlueSpacing.xs)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("我知道了，关闭提示")
         }
     }
 

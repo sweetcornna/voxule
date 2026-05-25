@@ -21,17 +21,13 @@ public enum GlassTint {
 public extension View {
     /// 套一层暖色 iOS 26 液态玻璃 —— 默认 22pt 圆角矩形。
     /// 方案 B：只用在 chrome，绝不用在内容纸卡上。
+    ///
+    /// 圆形 mic、胶囊状浮按等场景必须把 `in:` 传成与最终 clipShape 一致的几何，
+    /// 否则矩形玻璃的高光会沿矩形 4 条边走，被外层 clipShape(Circle()) 切成
+    /// 一道弧形亮鳞（dark 下尤其刺眼）。
     /// - Parameter tint: 玻璃染色，默认纸奶油色。
-    func voxlueGlass(tint: Color = GlassTint.cream, interactive: Bool = false) -> some View {
-        self.glassEffect(
-            .regular.tint(tint).interactive(interactive),
-            in: .rect(cornerRadius: VoxlueRadius.glass)
-        )
-    }
-
-    /// 自定义形态版的液态玻璃 —— 圆形 mic、胶囊状浮按等场景必须把 in: 传成
-    /// 与最终 clipShape 一致的几何，否则矩形玻璃的高光会沿矩形 4 条边走，被外
-    /// 层 clipShape(Circle()) 切成一道弧形亮鳞（dark 下尤其刺眼）。
+    /// - Parameter shape: 玻璃形态，默认 22pt 圆角矩形。
+    @ViewBuilder
     func voxlueGlass<S: Shape>(
         tint: Color = GlassTint.cream,
         interactive: Bool = false,
@@ -40,6 +36,17 @@ public extension View {
         self.glassEffect(
             .regular.tint(tint).interactive(interactive),
             in: shape
+        )
+    }
+
+    /// 默认 22pt 圆角矩形的便捷重载 —— 内部转发给泛型 overload，单一实现源。
+    /// Swift 不允许默认参数 + 泛型同时写默认 `RoundedRectangle(cornerRadius:)`
+    /// （类型不可推），因此分两条入口；行为完全等价。
+    func voxlueGlass(tint: Color = GlassTint.cream, interactive: Bool = false) -> some View {
+        voxlueGlass(
+            tint: tint,
+            interactive: interactive,
+            in: RoundedRectangle(cornerRadius: VoxlueRadius.glass, style: .continuous)
         )
     }
 }

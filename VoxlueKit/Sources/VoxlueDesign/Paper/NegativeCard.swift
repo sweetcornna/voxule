@@ -48,12 +48,15 @@ public struct NegativeCard<Image: View>: View {
 
             Text(title)
                 .font(VoxlueTypography.serifTitle)
-                .foregroundStyle(VoxlueColor.paperLight)
+                .foregroundStyle(VoxlueColor.inkOnDark)
                 .lineLimit(1)
+            // meta 在样片墙单列下一行即够，但 contact-sheet 半宽场景下
+            // 「时间锁 · 0:48 · 北京市朝阳区xxx」会截断地点 —— 用户最敏感的一项。
+            // 与 PhotoCard 同步 lineLimit(2)。
             Text(meta)
                 .font(VoxlueTypography.meta)
                 .foregroundStyle(VoxlueColor.darkroomGrayLight)
-                .lineLimit(1)
+                .lineLimit(2)
         }
         .padding(VoxlueSpacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
