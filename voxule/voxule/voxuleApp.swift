@@ -78,6 +78,11 @@ struct voxuleApp: App {
         // 是最稳的做法。
         if Self.isRunningTests {
             UserDefaults.standard.set(true, forKey: "voxlue.hasSeenOnboarding")
+            // 样片墙布局强制回 list —— testRecordBuryPlayMainLoop 的 cells.count 契约
+            // 依赖 List 单列形态；模拟器残留的 "contactSheet" 偏好会让 grid 形态下 cells
+            // 数 = 0，超时失败。这条与上面 hasSeenOnboarding 同源：测试不卸装，跨 run
+            // AppStorage 残留是常态，必须显式重置。
+            UserDefaults.standard.set("list", forKey: "shelf.layout")
         }
 
         let deps = AppDependencies(modelContainer: container)
