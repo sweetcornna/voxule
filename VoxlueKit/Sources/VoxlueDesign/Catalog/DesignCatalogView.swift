@@ -43,9 +43,10 @@ public struct DesignCatalogView: View {
     private var colorSection: some View {
         VStack(alignment: .leading, spacing: VoxlueSpacing.md) {
             sectionTitle("纸 · 墨 · 朱 八色")
+            // 顶部铺面用自适应版 —— 系统切到 dark 整段跟着翻面，与下方「翻面对照」语义一致。
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4),
                       spacing: VoxlueSpacing.md) {
-                ForEach(Array(VoxlueColor.palette.enumerated()), id: \.offset) { idx, color in
+                ForEach(Array(VoxlueColor.adaptivePalette.enumerated()), id: \.offset) { idx, color in
                     VStack(spacing: VoxlueSpacing.xs) {
                         RoundedRectangle(cornerRadius: VoxlueRadius.photo)
                             .fill(color)

@@ -37,26 +37,28 @@ private struct GrainOverlay: View {
 
 /// 纸纹理图片缓存。Key 量化到整数像素 + colorScheme，避免 1pt size 抖动重生成；
 /// dark/light 两套独立缓存，互不污染。
+///
+/// 用 NSCache 而不是 `[Key: UIImage]`：dark mode 把缓存条目数翻一倍，加上 ShelfView
+/// 多 size 场景内存可能堆到几 MB。NSCache 在系统内存压力下会自动逐出，避免长 session
+/// 持续增长。
 @MainActor
 private final class PaperGrainCache {
     static let shared = PaperGrainCache()
 
-    private struct Key: Hashable {
-        let size: CGSize
-        let isDark: Bool
-    }
-
-    private var cache: [Key: UIImage] = [:]
+    private let cache: NSCache<NSString, UIImage> = {
+        let c = NSCache<NSString, UIImage>()
+        // 单条 ~ (w*h*4) byte。8 条足够覆盖 light/dark 各 4 种常见 size，超出自动 LRU 逐出。
+        c.countLimit = 8
+        return c
+    }()
     private let dotCount = 2400
 
     func image(for size: CGSize, isDark: Bool) -> UIImage {
-        let key = Key(
-            size: CGSize(width: floor(size.width), height: floor(size.height)),
-            isDark: isDark
-        )
-        if let cached = cache[key] { return cached }
+        let quantized = CGSize(width: floor(size.width), height: floor(size.height))
+        let key = "\(Int(quantized.width))x\(Int(quantized.height))x\(isDark ? 1 : 0)" as NSString
+        if let cached = cache.object(forKey: key) { return cached }
 
-        let renderer = UIGraphicsImageRenderer(size: key.size)
+        let renderer = UIGraphicsImageRenderer(size: quantized)
         let img = renderer.image { ctx in
             let cg = ctx.cgContext
             // light：墨点压在纸上；dark：乳剂亮粒散在负片上 —— 一个方向的颗粒物质感。
@@ -64,19 +66,19 @@ private final class PaperGrainCache {
                 ? UIColor(VoxlueColor.paperHighlightLight)
                 : UIColor(VoxlueColor.inkLight)
             // 用确定性伪随机，同尺寸下纹理稳定。
-            var seed: UInt64 = UInt64(key.size.width * 1019 + key.size.height * 37)
+            var seed: UInt64 = UInt64(quantized.width * 1019 + quantized.height * 37)
             for _ in 0..<dotCount {
                 seed = seed &* 1_103_515_245 &+ 12_345
-                let x = CGFloat(seed % 100_000) / 100_000.0 * key.size.width
+                let x = CGFloat(seed % 100_000) / 100_000.0 * quantized.width
                 seed = seed &* 1_103_515_245 &+ 12_345
-                let y = CGFloat(seed % 100_000) / 100_000.0 * key.size.height
+                let y = CGFloat(seed % 100_000) / 100_000.0 * quantized.height
                 seed = seed &* 1_103_515_245 &+ 12_345
                 let alpha = 0.025 + CGFloat(seed % 100) / 100.0 * 0.035
                 cg.setFillColor(dot.withAlphaComponent(alpha).cgColor)
                 cg.fillEllipse(in: CGRect(x: x, y: y, width: 0.6, height: 0.6))
             }
         }
-        cache[key] = img
+        cache.setObject(img, forKey: key)
         return img
     }
 }

@@ -82,15 +82,24 @@ public enum VoxlueColor {
 
     // MARK: catalog / 单测用
 
-    /// 八色调色板（固定 light 端 + 朱红 + 负片黑），catalog 遍历与单测计数。
-    /// 顺序与 `paletteNames` 一致。dark 端对照请用 `darkPalette`。
+    /// 八色调色板（固定 light 端 + 朱红 + 负片黑），翻面对照「light 栏」与单测计数用。
+    /// 顺序与 `paletteNames` 一致。整屏跟随翻面用 `adaptivePalette`、dark 端定值用 `darkPalette`。
     public static let palette: [Color] = [
         paperLight, paperHighlightLight, paperShadowLight,
         inkLight, graphiteLight, darkroomGrayLight, negativeBlack,
         vermillion,
     ]
 
-    /// 暗房模式调色板（六只自适应 token 的 dark 端 + 朱红 + 负片黑），catalog 对照用。
+    /// 自适应版八色 —— 前六只跟随 colorScheme 翻面、朱红 / 负片黑不变。
+    /// catalog 顶部「八色铺面」用这套，保证打开 catalog 时上下两段视觉一致：
+    /// 系统切到 dark，顶部 swatch 也跟着翻面，不会与下方「暗房模式 · 翻面对照」自相矛盾。
+    public static let adaptivePalette: [Color] = [
+        paper, paperHighlight, paperShadow,
+        ink, graphite, darkroomGray, negativeBlack,
+        vermillion,
+    ]
+
+    /// 暗房模式调色板（六只自适应 token 的 dark 端 + 朱红 + 负片黑），catalog 对照「dark 栏」用。
     /// 顺序与 `palette` 一一对应，便于左右铺成「翻面前 / 翻面后」两栏。
     public static let darkPalette: [Color] = [
         paperDark, paperHighlightDark, paperShadowDark,
