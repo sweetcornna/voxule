@@ -381,7 +381,13 @@ v1 主功能完成后，VoxlueDesign 包（P3 · Photographic Plate · 暗房黑
 - 主 agent 集中评审 + 合主 + 跑回归（`swift test` + `testRecordBuryPlayMainLoop` + clinical scan）
 - 单一 PR 失败不阻塞同批其他 PR
 
-### 9.3 仍未推进
+### 9.3 两个 standalone 大坑（2026-05-24 ~ 2026-05-25 落地）
 
-- **暗房模式 dark theme** —— 全局 colorScheme adapt，surface 太大，留单独立项
-- **contact-sheet 2 列网格** —— 与 #22 时间分段同文件冲突，需单独设计
+§9.1 扫尾期留下的两个 surface 太大、文件冲突太多的项目，分两个独立分支推进。
+
+| 项目 | PR | 落地要点 |
+|---|---|---|
+| **暗房模式 dark theme** | #75 | 把 VoxlueDesign 六只 token（paper / paperHighlight / paperShadow / ink / graphite / darkroomGray）升级成 `Color.voxlueAdaptive(light:dark:)`；新增 6 个 `*Light` 固定原值 alias 给「永远在暗底之上」的语境（NegativeCard 文字、FilmPerforations、RecordView 整屏、PhotoCard waveform、DevelopingIslandLabel、CapsuleRow / CapsuleDetailView waveform）；vermillion / negativeBlack 不参与翻面。PaperGrain 缓存 key 加 isDark、改 NSCache 防内存堆增。DesignCatalog 加「翻面对照 + 整屏暗房样片」段。`GlassTint.cream` 也改 adaptive 避免 dark 下与背板同色失去玻璃感。13 屏 + 全局 tokens 一次性覆盖。评审反馈 3 Major（adaptivePalette / dark 端测试 / cream tint） + 1 Minor 全修。 |
+| **contact-sheet 2 列网格** | #76 | 样片墙 ShelfView 加 `ShelfLayout` 枚举（list / contactSheet）+ `@AppStorage("shelf.layout")`，toolbar Menu/Picker 切换；新增 `contactSheetGrid`（ScrollView + LazyVStack 段头 + LazyVGrid 2 列），bucketGroups 按 bucket 收成连续段落；List 路径保留为默认（XCUI `testRecordBuryPlayMainLoop` cells.count 契约不破）。capsuleContextMenu helper 让列表与 grid 共享 ShareLink + 划掉行为。评审反馈 1 Critical（XCUI 残留 AppStorage —— voxuleApp init 显式重置）+ 1 Major（ForEach id 改 `\.bucket`）+ 几条 minor 全修。 |
+
+至此 v1 路线图（§4–§9.3）全部交付，main 上 76 个 PR 合入。
