@@ -53,10 +53,14 @@ public struct PhotoCard<Image: View>: View {
                     .font(VoxlueTypography.serifTitle)
                     .foregroundStyle(VoxlueColor.ink)
                     .lineLimit(1)
+                // meta 在样片墙单列下用一行即够（地点名几乎不超 12 字），
+                // 但 contact-sheet 2 列半宽场景里「地点锁 · 0:48 · 北京市朝阳区xxx」
+                // 会被截到只剩锁类型，恰好把用户最敏感的地点损失掉。
+                // 给到 2 行 —— 短地名仍一行（lineLimit 是上限不是固定行数），长地名换行保留。
                 Text(meta)
                     .font(VoxlueTypography.meta)
                     .foregroundStyle(VoxlueColor.darkroomGray)
-                    .lineLimit(1)
+                    .lineLimit(2)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(VoxlueSpacing.md)

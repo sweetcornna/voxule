@@ -12,6 +12,17 @@ import SwiftUI
 }
 
 @MainActor
+@Test func inkOnDarkIsAliasForPaperLight() {
+    // 别名漂移防线：把 inkOnDark 改成非 paperLight 的真色，本测试必爆。
+    // 阅读层面 inkOnDark 是「永远在暗底之上的文字色」，hex 上必须等于 paperLight。
+    let alias = VoxlueColor.inkOnDark.resolve(in: .init())
+    let source = VoxlueColor.paperLight.resolve(in: .init())
+    #expect(abs(alias.red - source.red) < 0.001)
+    #expect(abs(alias.green - source.green) < 0.001)
+    #expect(abs(alias.blue - source.blue) < 0.001)
+}
+
+@MainActor
 @Test func paperBaseIsWarmCream() {
     // 纸基必须偏暖：红通道 > 蓝通道（不是冷蓝屏幕白）。
     let res = VoxlueColor.paper.resolve(in: .init())

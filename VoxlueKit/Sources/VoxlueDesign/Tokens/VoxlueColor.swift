@@ -80,6 +80,14 @@ public enum VoxlueColor {
     /// 朱红 · 印章 / 手写批注 / 关键强调。任何 colorScheme 下都是暖橘红。
     public static let vermillion = Color(hex: 0xC4452D)
 
+    // MARK: 语义别名 —— 阅读调用点时更直观，不引入新色值
+
+    /// 「永远在暗底之上的文字色」语义别名 —— 与 `paperLight` 同值。
+    /// 调用点（NegativeCard 标题 / FilmPerforations 内文字 / RecordView 计时器 /
+    /// DevelopingIslandLabel）想表达「文字色」而不是「纸基色当文字用」时用这只；
+    /// 读起来更接近意图：`foregroundStyle(.inkOnDark)` 比 `foregroundStyle(.paperLight)` 更自描述。
+    public static let inkOnDark = paperLight
+
     // MARK: catalog / 单测用
 
     /// 八色调色板（固定 light 端 + 朱红 + 负片黑），翻面对照「light 栏」与单测计数用。
