@@ -418,30 +418,30 @@ v1 路线图（§4–§10）已完整交付。下期任务按两轨梳理 ——
 
 ### 11.1 前端轨候选（v1.2 / v1.3）
 
-按价值优先级：
+按价值优先级（高优先级两项已落 GitHub Issues）：
 
-| 优先级 | 项目 | 触发与依赖 |
+| 优先级 | 项目 | Issue / 触发 |
 |---|---|---|
-| 高 | **真机 / 模拟器 13 屏 dark mode 目视验收** | §9.3 #75 落地后留的 [ ] 项；跑通后给 dark 翻面收个尾，发现的 bug 单 PR 修 |
-| 高 | **contact-sheet a11y 加固** | `contactSheetHintBanner` 加 `.accessibilityElement(children: .combine)` + `accessibilityAddTraits(.isHeader)`；`contactSheetGrid` 标 region；XCUI 跑过 |
-| 中 | **PhotoCard / CapsuleRow Preview 扩样** | 加长 meta（>20 字）/ 长 title 变体，`#Preview "long meta"` `#Preview "long title"`，让 lineLimit(2) / scaleEffect 数学回归靠 Preview 抓 |
+| 高 | **真机 / 模拟器 13 屏 dark mode 目视验收** | #85 |
+| 高 | **contact-sheet a11y 加固** | #86 |
+| 中 | **PhotoCard / CapsuleRow Preview 扩样** | 加长 meta / 长 title 变体让 lineLimit(2) 数学回归靠 Preview 抓 |
 | 中 | **微动画 polish** | ShelfView 滚动惯性、PhotoCard 按下手感、bucket header 出现 `.transition` |
-| 低 | **用户头像 emoji 池扩展** | `CircleEmojiHash` 当前 hash 池较窄，加自定义入口或扩 emoji 集合 |
-| 低 | **iPad 适配 spike** | ShelfView 在 iPad 下 contact-sheet 应 3 列；NavigationStack split detail；进 v2 前先做 spike 评估 |
+| 低 | **用户头像 emoji 池扩展** | `CircleEmojiHash` 当前 hash 池较窄 |
+| 低 | **iPad 适配 spike** | contact-sheet 应 3 列；split detail；v2 前先做 spike |
 
 ### 11.2 协作者轨剩余项（v1 末延期、待协作者推进）
 
-这些项在 §7.4 / §8.4 已登记，**无头环境搞不定**、需真机 + 账号 + 部署，至今未推进：
+这些项在 §7.4 / §8.4 已登记，**无头环境搞不定**、需真机 + 账号 + 部署。已全部落 GitHub Issues（label `coworker-track`）：
 
-| 项目 | 入口 | 阻塞条件 |
+| 项目 | Issue | 阻塞条件 |
 |---|---|---|
-| **VoxlueWidget Extension target** | `voxule/VoxlueWidget/` 源文件已就绪；DevelopingIslandLabel 等待接入 | Xcode 工程操作 —— 新建 Widget Extension target、加入源文件、跑通灵动岛 LiveActivity |
-| **agent-proxy serverless 部署** | `backend/agent-proxy/` Cloudflare Worker 已落代码 | `cd backend/agent-proxy && wrangler deploy`，部署后把真实 Worker 地址填进 `voxuleApp.agentProxyURL` |
-| **真 CKShare 共享链路联调** | 计划 05 / §13 重写路径 | 真机 + iCloud 账号 |
-| **真 HealthKit 授权 + 数据流** | 计划 06 HealthEnv 已就位 | 真机 + HealthKit 授权弹窗 + 真数据 |
-| **真 agent 调用 + 大模型 API key** | AgentGateway / 浮现循环已联通到 proxy 端点 | 真机 + Cloudflare Worker 已 deploy + 大模型 API key 配进 Worker secrets |
-| **真 CloudKit 同步** | CloudKit container `iCloud.com.voxlue.app` 待建 | Apple Developer 账号 + CloudKit Dashboard + 带 iCloud 能力的签名 Team |
-| **RecordView toolbar dark 真机验收**（§9.3 #75 评审 nit） | navbar 已设 `.toolbarColorScheme(.dark)`，CapsuleDetailView / 各 sheet 未显式处理 | 真机 dark 目视一遍 |
+| **VoxlueWidget Extension target** | #78 | Xcode 新建 Widget Extension target、加入 `voxule/VoxlueWidget/` 源文件、跑通灵动岛 LiveActivity |
+| **agent-proxy Cloudflare Worker 部署** | #79 | `wrangler login` + secrets 配 LLM API key + `wrangler deploy`，URL 填回 `voxuleApp.agentProxyURL` |
+| **真 CKShare 共享链路联调** | #80 | 真机 + iCloud 账号 |
+| **真 HealthKit 授权 + 数据流** | #81 | 真机 + HealthKit 授权弹窗 + 真数据 |
+| **真 agent 调用 + 大模型 API key** | #82 | 依赖 #79；真机 + Cloudflare Worker secrets |
+| **真 CloudKit 同步** | #83 | CloudKit Dashboard 建 container + Apple Developer 账号 + 带 iCloud 能力的 Team |
+| **RecordView / CapsuleDetailView dark toolbar 真机验收** | #84 | 真机 dark 目视一遍 |
 
 ### 11.3 v2 候选方向（未启动 spike）
 
@@ -455,6 +455,8 @@ v1 路线图（§4–§10）已完整交付。下期任务按两轨梳理 ——
 
 ### 11.4 接下来的 PR 节奏建议
 
-- **优先开 §11.1 高优先级两项**（dark 真机验收 + contact-sheet a11y）作为 v1.2 双 PR 批
-- **§11.2 协作者轨**列入 GitHub Issues（带 `coworker-track` label），便于追踪与认领
-- **v2 方向**等用户主动提需求时再走 brainstorming skill 展开
+- **§11.1 高优先级两项已开 issues** —— #85 dark 真机验收、#86 contact-sheet a11y。两者可作 v1.2 双 PR 批，互不冲突文件可并行。
+- **§11.2 协作者轨 7 项全部进 GitHub Issues** —— #78–#84，带 `coworker-track` label，便于协作者认领与追踪。
+- **v2 方向**等用户主动提需求时再走 brainstorming skill 展开。
+
+GitHub Labels：`frontend-track`（绿）= 用户负责、`coworker-track`（红）= 协作者负责。
