@@ -6,6 +6,8 @@ import VoxlueDesign
 /// 样片墙 —— 全部胶囊按埋下时间倒序排开，存储与浏览中心。
 /// 录音入口已搬到首页（HomeView）巨型 mic 键，这里不再放浮动入口，避免重复 chrome。
 /// 第五轮：墙面按时间分段 —— 本周 / 上个月 / 更早，像档案箱的隔板。
+/// 第六轮（§9.3）：加 contact-sheet 2 列网格作为可选布局，模仿摄影师小样张，
+/// 同段时间的片子横向铺开。toolbar 切换 —— 默认列表保 XCUI 测试契约。
 struct ShelfView: View {
     @Query(sort: \VoxlueData.Capsule.createdAt, order: .reverse)
     private var capsules: [VoxlueData.Capsule]
@@ -24,6 +26,15 @@ struct ShelfView: View {
     /// .alert(_:isPresented:presenting:) 需要个非空值给 actions/message 闭包，
     /// 拿它当 identity 一并解决"弹谁"的歧义。
     @State private var confirmingDelete: VoxlueData.Capsule?
+
+    /// 样片墙布局 —— list（默认、单列 PhotoCard）/ contactSheet（2 列网格小样张）。
+    /// 用 rawValue String 进 AppStorage，跨进程会话保留用户的偏好；默认 .list
+    /// 保 XCUI 测试 testRecordBuryPlayMainLoop 的 `cells.count == capsules.count` 契约。
+    @AppStorage("shelf.layout") private var layoutRaw: String = ShelfLayout.list.rawValue
+
+    private var layout: ShelfLayout {
+        get { ShelfLayout(rawValue: layoutRaw) ?? .list }
+    }
 
     /// 时间分段 —— 顺序即渲染顺序，新鲜的在上。
     private enum Bucket: CaseIterable {
@@ -53,11 +64,24 @@ struct ShelfView: View {
                     // 用一行 MarginNote 提示，避免覆盖整个区域的大字 display。
                     noMatchState
                 } else {
-                    photoStack
+                    switch layout {
+                    case .list:         photoStack
+                    case .contactSheet: contactSheetGrid
+                    }
                 }
             }
             .navigationTitle("样片墙")
             .searchable(text: $query, prompt: Text("找一段声音"))
+            .toolbar {
+                // 布局切换 —— 列表 / contact-sheet。藏进 Menu 里，
+                // 避免在 chrome 上常露一个 segmented control 抢内容焦点。
+                // 只当 capsules 非空时显示：墙是空的，给个布局开关没意义、还会绕过空态版面。
+                ToolbarItem(placement: .topBarTrailing) {
+                    if !capsules.isEmpty {
+                        layoutMenu
+                    }
+                }
+            }
             .navigationDestination(for: UUID.self) { id in
                 if let capsule = capsules.first(where: { $0.id == id }) {
                     CapsuleDetailView(capsule: capsule)
@@ -203,24 +227,10 @@ struct ShelfView: View {
                     bottom: VoxlueSpacing.sm,
                     trailing: VoxlueSpacing.lg
                 ))
-                // 长按行 —— 不进详情就能分享 / 划掉。
+                // 长按行 —— 不进详情就能分享 / 划掉。共享 helper，与 contact-sheet 一致。
                 // 分享只在确有音频数据时露出，避免给 buried/空音频行甩个空按钮；
                 // 划掉走 confirmingDelete = capsule，弹层在 NavigationStack 层级统一处理。
-                .contextMenu {
-                    if let data = row.capsule.audioData, !data.isEmpty {
-                        ShareLink(
-                            item: data,
-                            preview: SharePreview(
-                                row.capsule.title.isEmpty ? "（无题）" : row.capsule.title
-                            )
-                        )
-                    }
-                    Button(role: .destructive) {
-                        confirmingDelete = row.capsule
-                    } label: {
-                        Label("划掉", systemImage: "trash")
-                    }
-                }
+                .contextMenu { capsuleContextMenu(row.capsule) }
                 // 右滑快捷入口 —— 长按只是发现路径之一，多数 iOS 用户先试右滑。
                 // 与 contextMenu 并存：两条路通向同一组动作，谁先发现都行。
                 // allowsFullSwipe: false —— 划掉是破坏性操作，不让一滑到底无确认就走。
@@ -270,6 +280,112 @@ struct ShelfView: View {
         .padding(.top, VoxlueSpacing.sm)
         .padding(.bottom, VoxlueSpacing.xs)
     }
+
+    // MARK: contact-sheet 2 列网格（§9.3）
+
+    /// 按 bucket 把 shelfRows 收成连续段落 —— 同 bucket 的胶囊聚到一起，
+    /// 整段一个 header + 一张 LazyVGrid，避免单元格穿越分段边界。
+    /// 因 shelfRows 已按时间倒序、bucket 与时间单调对齐，扫一遍即可，无需排序。
+    private var bucketGroups: [(bucket: Bucket, capsules: [VoxlueData.Capsule])] {
+        var groups: [(Bucket, [VoxlueData.Capsule])] = []
+        for row in shelfRows {
+            if !groups.isEmpty, groups[groups.count - 1].0 == row.bucket {
+                groups[groups.count - 1].1.append(row.capsule)
+            } else {
+                groups.append((row.bucket, [row.capsule]))
+            }
+        }
+        return groups
+    }
+
+    /// 2 列 contact-sheet —— 摄影师的小样张，同段时间一张张铺开。
+    /// 与 photoStack 共享 NavigationLink + contextMenu + swipeActions 语义；
+    /// 但走 ScrollView+LazyVGrid 而不是 List：List 在 grid 形态下不存在，contact-sheet
+    /// 也不复用 XCUI cells 契约（XCUI 测试默认走 .list 布局）。
+    private var contactSheetGrid: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: VoxlueSpacing.xl) {
+                ForEach(Array(bucketGroups.enumerated()), id: \.offset) { _, group in
+                    VStack(alignment: .leading, spacing: VoxlueSpacing.md) {
+                        sectionHeader(group.bucket.label)
+                            .padding(.leading, 0)   // contact-sheet 已有外层 lg padding，
+                            //                         section header 不再额外退一档。
+                        LazyVGrid(
+                            columns: [
+                                GridItem(.flexible(), spacing: VoxlueSpacing.md),
+                                GridItem(.flexible(), spacing: VoxlueSpacing.md),
+                            ],
+                            spacing: VoxlueSpacing.md
+                        ) {
+                            ForEach(group.capsules, id: \.id) { capsule in
+                                NavigationLink(value: capsule.id) {
+                                    CapsuleRow(capsule: capsule)
+                                }
+                                // 同列表模式 —— 移系统灰 chevron / 默认高亮。
+                                .buttonStyle(.plain)
+                                .contextMenu { capsuleContextMenu(capsule) }
+                            }
+                        }
+                    }
+                    .padding(.horizontal, VoxlueSpacing.lg)
+                }
+            }
+            .padding(.vertical, VoxlueSpacing.lg)
+        }
+    }
+
+    /// 列表与 contact-sheet 共享的 contextMenu 内容 —— 行为契约一致，避免一份在
+    /// inline 写法里漂移、另一份在 grid 里漂移。
+    @ViewBuilder private func capsuleContextMenu(_ capsule: VoxlueData.Capsule) -> some View {
+        if let data = capsule.audioData, !data.isEmpty {
+            ShareLink(
+                item: data,
+                preview: SharePreview(
+                    capsule.title.isEmpty ? "（无题）" : capsule.title
+                )
+            )
+        }
+        Button(role: .destructive) {
+            confirmingDelete = capsule
+        } label: {
+            Label("划掉", systemImage: "trash")
+        }
+    }
+
+    /// 布局切换菜单。Menu + Picker —— iOS 标准的「藏进 chrome」形态，
+    /// label 用当前选择的 icon，按下展开两个选项让人一眼读懂。
+    private var layoutMenu: some View {
+        Menu {
+            Picker("样片墙布局", selection: layoutBinding) {
+                Label("列表", systemImage: "rectangle.grid.1x2")
+                    .tag(ShelfLayout.list)
+                Label("contact-sheet", systemImage: "square.grid.2x2")
+                    .tag(ShelfLayout.contactSheet)
+            }
+        } label: {
+            Image(systemName: layout == .list
+                  ? "rectangle.grid.1x2"
+                  : "square.grid.2x2")
+                .foregroundStyle(VoxlueColor.ink)
+        }
+        .accessibilityLabel("切换样片墙布局")
+    }
+
+    /// AppStorage 存的是 rawValue String —— 给 Picker 一只
+    /// `Binding<ShelfLayout>` 适配器，读经 `layout`、写则拆回 rawValue。
+    private var layoutBinding: Binding<ShelfLayout> {
+        Binding(
+            get: { layout },
+            set: { layoutRaw = $0.rawValue }
+        )
+    }
+}
+
+/// 样片墙布局枚举 —— 文件级私有（仅 ShelfView 与其 Picker tag 用）。
+/// rawValue 直接进 AppStorage；新增 case 要在 layoutMenu 的 Picker 里同步增项。
+private enum ShelfLayout: String, CaseIterable {
+    case list           // 单列 PhotoCard，按时间分段
+    case contactSheet   // 2 列网格小样张，按时间分段
 }
 
 #Preview {
