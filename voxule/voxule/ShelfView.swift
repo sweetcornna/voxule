@@ -30,10 +30,12 @@ struct ShelfView: View {
     /// 样片墙布局 —— list（默认、单列 PhotoCard）/ contactSheet（2 列网格小样张）。
     /// 用 rawValue String 进 AppStorage，跨进程会话保留用户的偏好；默认 .list
     /// 保 XCUI 测试 testRecordBuryPlayMainLoop 的 `cells.count == capsules.count` 契约。
+    /// （voxuleApp init 在测试环境还会显式重置 "shelf.layout" 为 "list"，避免模拟器
+    /// 残留 contactSheet 偏好破坏契约。）
     @AppStorage("shelf.layout") private var layoutRaw: String = ShelfLayout.list.rawValue
 
     private var layout: ShelfLayout {
-        get { ShelfLayout(rawValue: layoutRaw) ?? .list }
+        ShelfLayout(rawValue: layoutRaw) ?? .list
     }
 
     /// 时间分段 —— 顺序即渲染顺序，新鲜的在上。
@@ -287,12 +289,12 @@ struct ShelfView: View {
     /// 整段一个 header + 一张 LazyVGrid，避免单元格穿越分段边界。
     /// 因 shelfRows 已按时间倒序、bucket 与时间单调对齐，扫一遍即可，无需排序。
     private var bucketGroups: [(bucket: Bucket, capsules: [VoxlueData.Capsule])] {
-        var groups: [(Bucket, [VoxlueData.Capsule])] = []
+        var groups: [(bucket: Bucket, capsules: [VoxlueData.Capsule])] = []
         for row in shelfRows {
-            if !groups.isEmpty, groups[groups.count - 1].0 == row.bucket {
-                groups[groups.count - 1].1.append(row.capsule)
+            if let last = groups.last, last.bucket == row.bucket {
+                groups[groups.count - 1].capsules.append(row.capsule)
             } else {
-                groups.append((row.bucket, [row.capsule]))
+                groups.append((bucket: row.bucket, capsules: [row.capsule]))
             }
         }
         return groups
@@ -305,11 +307,14 @@ struct ShelfView: View {
     private var contactSheetGrid: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: VoxlueSpacing.xl) {
-                ForEach(Array(bucketGroups.enumerated()), id: \.offset) { _, group in
+                // bucket 三段互不重复，Bucket 自身是稳定 identity；
+                // 用 \.offset 会让插入新片时第一段被整体 invalidate（diff 错位），
+                // grid 内所有 NavigationLink 被迫 rebuild、SealStamp 入场动画再跑一遍。
+                ForEach(bucketGroups, id: \.bucket) { group in
                     VStack(alignment: .leading, spacing: VoxlueSpacing.md) {
+                        // contact-sheet 段头已挂在外层 lg padding 容器里，无需再额外缩进。
                         sectionHeader(group.bucket.label)
-                            .padding(.leading, 0)   // contact-sheet 已有外层 lg padding，
-                            //                         section header 不再额外退一档。
+                            .padding(.leading, 0)
                         LazyVGrid(
                             columns: [
                                 GridItem(.flexible(), spacing: VoxlueSpacing.md),
@@ -354,18 +359,17 @@ struct ShelfView: View {
 
     /// 布局切换菜单。Menu + Picker —— iOS 标准的「藏进 chrome」形态，
     /// label 用当前选择的 icon，按下展开两个选项让人一眼读懂。
+    /// label icon / Picker icon / enum 三处全共用 `ShelfLayout.icon`，
+    /// 新增 case 只需在 enum 上同步一条，避免漂移。
     private var layoutMenu: some View {
         Menu {
             Picker("样片墙布局", selection: layoutBinding) {
-                Label("列表", systemImage: "rectangle.grid.1x2")
-                    .tag(ShelfLayout.list)
-                Label("contact-sheet", systemImage: "square.grid.2x2")
-                    .tag(ShelfLayout.contactSheet)
+                ForEach(ShelfLayout.allCases, id: \.self) { option in
+                    Label(option.label, systemImage: option.icon).tag(option)
+                }
             }
         } label: {
-            Image(systemName: layout == .list
-                  ? "rectangle.grid.1x2"
-                  : "square.grid.2x2")
+            Image(systemName: layout.icon)
                 .foregroundStyle(VoxlueColor.ink)
         }
         .accessibilityLabel("切换样片墙布局")
@@ -382,10 +386,28 @@ struct ShelfView: View {
 }
 
 /// 样片墙布局枚举 —— 文件级私有（仅 ShelfView 与其 Picker tag 用）。
-/// rawValue 直接进 AppStorage；新增 case 要在 layoutMenu 的 Picker 里同步增项。
+/// rawValue 直接进 AppStorage；中文 label / SF Symbol icon 都在枚举上，新增 case
+/// 只需补这一条，layoutMenu 自动 enumerate ShelfLayout.allCases 拿到新选项。
 private enum ShelfLayout: String, CaseIterable {
     case list           // 单列 PhotoCard，按时间分段
     case contactSheet   // 2 列网格小样张，按时间分段
+
+    /// Picker 与 a11y 标签的中文显示名 —— 「列表 / 小样张」摄影术语，
+    /// 不混英文 chrome（commit 前是「contact-sheet」原词，与「列表」字面不齐）。
+    var label: String {
+        switch self {
+        case .list:         "列表"
+        case .contactSheet: "小样张"
+        }
+    }
+
+    /// SF Symbol 标识 —— Menu label / Picker label icon / 未来其他入口共用一份。
+    var icon: String {
+        switch self {
+        case .list:         "rectangle.grid.1x2"
+        case .contactSheet: "square.grid.2x2"
+        }
+    }
 }
 
 #Preview {
