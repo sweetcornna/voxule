@@ -391,3 +391,70 @@ v1 主功能完成后，VoxlueDesign 包（P3 · Photographic Plate · 暗房黑
 | **contact-sheet 2 列网格** | #76 | 样片墙 ShelfView 加 `ShelfLayout` 枚举（list / contactSheet）+ `@AppStorage("shelf.layout")`，toolbar Menu/Picker 切换；新增 `contactSheetGrid`（ScrollView + LazyVStack 段头 + LazyVGrid 2 列），bucketGroups 按 bucket 收成连续段落；List 路径保留为默认（XCUI `testRecordBuryPlayMainLoop` cells.count 契约不破）。capsuleContextMenu helper 让列表与 grid 共享 ShareLink + 划掉行为。评审反馈 1 Critical（XCUI 残留 AppStorage —— voxuleApp init 显式重置）+ 1 Major（ForEach id 改 `\.bucket`）+ 几条 minor 全修。 |
 
 至此 v1 路线图（§4–§9.3）全部交付，main 上 76 个 PR 合入。
+
+---
+
+## 10. v1.1 收尾批（2026-05-25）
+
+PR #75 / #76 评审中记为「下次再说」的 minor / nit 在 §9.3 收尾后开 v1.1 批次一次性清掉（PR #77）。
+
+| # | 来源 | 改动 |
+|---|---|---|
+| ① | #75 m2 | `HomeView.recentPreview` frame 168 → 180，留 lineLimit(2) 长 meta 与 seal 阴影余量；alignment 保持 .top 以与 scaleEffect anchor 协同 |
+| ② | #75 n1 | `voxlueGlass` DRY —— 便捷重载内部转发给泛型版 `voxlueGlass(in:)`，单一实现源；corner 保持 `.circular` 默认避免悄改成 `.continuous` squircle |
+| ③ | #75 n3 | `VoxlueColor.inkOnDark` 语义别名（== paperLight）；NegativeCard 标题示范迁移；ColorTests 加 `inkOnDarkIsAliasForPaperLight` 防漂移 |
+| ④ | #76 m6 | contact-sheet 首切显示 `MarginNote「长按一张可分享或划掉」+ 朱红「知道了」`，`@AppStorage("shelf.contactSheetHintSeen")` 关一次永久 |
+| ⑤ | #76 m7 | `PhotoCard` / `NegativeCard` meta `lineLimit 1 → 2`，半宽 grid 下长地名不再截 |
+
+回归：swift test 114 通过（+1 别名断言）、`scripts/run-sim.sh --build-only` BUILD SUCCEEDED、临床措辞扫描无命中。
+
+**配套基建（同期）**：`scripts/run-sim.sh` 一键构建+装+启 iPhone 17 模拟器（内置 `CODE_SIGNING_ALLOWED=NO` 绕本机 SwiftPM 资源 bundle codesign 预存在问题）；README 同步指向脚本。
+
+---
+
+## 11. v1.x 下期任务地图
+
+v1 路线图（§4–§10）已完整交付。下期任务按两轨梳理 —— **前端轨** = 用户负责，**协作者轨** = 协作者负责。
+
+### 11.1 前端轨候选（v1.2 / v1.3）
+
+按价值优先级：
+
+| 优先级 | 项目 | 触发与依赖 |
+|---|---|---|
+| 高 | **真机 / 模拟器 13 屏 dark mode 目视验收** | §9.3 #75 落地后留的 [ ] 项；跑通后给 dark 翻面收个尾，发现的 bug 单 PR 修 |
+| 高 | **contact-sheet a11y 加固** | `contactSheetHintBanner` 加 `.accessibilityElement(children: .combine)` + `accessibilityAddTraits(.isHeader)`；`contactSheetGrid` 标 region；XCUI 跑过 |
+| 中 | **PhotoCard / CapsuleRow Preview 扩样** | 加长 meta（>20 字）/ 长 title 变体，`#Preview "long meta"` `#Preview "long title"`，让 lineLimit(2) / scaleEffect 数学回归靠 Preview 抓 |
+| 中 | **微动画 polish** | ShelfView 滚动惯性、PhotoCard 按下手感、bucket header 出现 `.transition` |
+| 低 | **用户头像 emoji 池扩展** | `CircleEmojiHash` 当前 hash 池较窄，加自定义入口或扩 emoji 集合 |
+| 低 | **iPad 适配 spike** | ShelfView 在 iPad 下 contact-sheet 应 3 列；NavigationStack split detail；进 v2 前先做 spike 评估 |
+
+### 11.2 协作者轨剩余项（v1 末延期、待协作者推进）
+
+这些项在 §7.4 / §8.4 已登记，**无头环境搞不定**、需真机 + 账号 + 部署，至今未推进：
+
+| 项目 | 入口 | 阻塞条件 |
+|---|---|---|
+| **VoxlueWidget Extension target** | `voxule/VoxlueWidget/` 源文件已就绪；DevelopingIslandLabel 等待接入 | Xcode 工程操作 —— 新建 Widget Extension target、加入源文件、跑通灵动岛 LiveActivity |
+| **agent-proxy serverless 部署** | `backend/agent-proxy/` Cloudflare Worker 已落代码 | `cd backend/agent-proxy && wrangler deploy`，部署后把真实 Worker 地址填进 `voxuleApp.agentProxyURL` |
+| **真 CKShare 共享链路联调** | 计划 05 / §13 重写路径 | 真机 + iCloud 账号 |
+| **真 HealthKit 授权 + 数据流** | 计划 06 HealthEnv 已就位 | 真机 + HealthKit 授权弹窗 + 真数据 |
+| **真 agent 调用 + 大模型 API key** | AgentGateway / 浮现循环已联通到 proxy 端点 | 真机 + Cloudflare Worker 已 deploy + 大模型 API key 配进 Worker secrets |
+| **真 CloudKit 同步** | CloudKit container `iCloud.com.voxlue.app` 待建 | Apple Developer 账号 + CloudKit Dashboard + 带 iCloud 能力的签名 Team |
+| **RecordView toolbar dark 真机验收**（§9.3 #75 评审 nit） | navbar 已设 `.toolbarColorScheme(.dark)`，CapsuleDetailView / 各 sheet 未显式处理 | 真机 dark 目视一遍 |
+
+### 11.3 v2 候选方向（未启动 spike）
+
+只是方向标记，不进入排期 —— 待 v1.x 落定后再 brainstorm：
+
+- 多人协同：声音圈成员实时听同一段、看见对方在听
+- 多段拼接 / 章节锁 —— 一枚胶囊承载一序列声音片段
+- 浮现智能化：基于 HealthKit 长期模式（睡眠/活动节律）的 agent 决策
+- 跨胶囊相关性：相同地点 / 情绪锁的浮现联动
+- 桌面端 / iPad / Vision 适配
+
+### 11.4 接下来的 PR 节奏建议
+
+- **优先开 §11.1 高优先级两项**（dark 真机验收 + contact-sheet a11y）作为 v1.2 双 PR 批
+- **§11.2 协作者轨**列入 GitHub Issues（带 `coworker-track` label），便于追踪与认领
+- **v2 方向**等用户主动提需求时再走 brainstorming skill 展开
