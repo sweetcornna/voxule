@@ -1,6 +1,8 @@
 import SwiftUI
 
 /// 设计系统图鉴 —— 把 VoxlueDesign 全部内容铺成一页，肉眼可验。
+/// 暗房模式（colorScheme = .dark）会同步翻面；可单独打开
+/// `DesignCatalogDarkPreviewSection` 在 light 环境里也看一眼 dark 端表现。
 public struct DesignCatalogView: View {
 
     public init() {}
@@ -10,6 +12,7 @@ public struct DesignCatalogView: View {
             VStack(alignment: .leading, spacing: VoxlueSpacing.xxl) {
                 header
                 colorSection
+                darkroomSection      // 暗房模式对照段 —— 在 light 模式下也能看到 dark 端。
                 typographySection
                 paperSection
                 glassSection
@@ -40,9 +43,10 @@ public struct DesignCatalogView: View {
     private var colorSection: some View {
         VStack(alignment: .leading, spacing: VoxlueSpacing.md) {
             sectionTitle("纸 · 墨 · 朱 八色")
+            // 顶部铺面用自适应版 —— 系统切到 dark 整段跟着翻面，与下方「翻面对照」语义一致。
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4),
                       spacing: VoxlueSpacing.md) {
-                ForEach(Array(VoxlueColor.palette.enumerated()), id: \.offset) { idx, color in
+                ForEach(Array(VoxlueColor.adaptivePalette.enumerated()), id: \.offset) { idx, color in
                     VStack(spacing: VoxlueSpacing.xs) {
                         RoundedRectangle(cornerRadius: VoxlueRadius.photo)
                             .fill(color)
@@ -58,6 +62,54 @@ public struct DesignCatalogView: View {
                 }
             }
         }
+    }
+
+    /// 暗房模式对照段 —— 把六只自适应 token 的 light/dark 两端铺成左右两栏，
+    /// 让设计师不切系统就能比较「翻面前 / 翻面后」。.colorScheme(.dark) 让右栏
+    /// 内部用 dark trait 渲染，所以 paperShadow 等 token 显示的就是 dark 端实色。
+    private var darkroomSection: some View {
+        VStack(alignment: .leading, spacing: VoxlueSpacing.md) {
+            sectionTitle("暗房模式 · 翻面对照")
+            HStack(alignment: .top, spacing: VoxlueSpacing.lg) {
+                paletteColumn(title: "light", palette: VoxlueColor.palette)
+                paletteColumn(title: "dark",  palette: VoxlueColor.darkPalette)
+                    .environment(\.colorScheme, .dark)
+            }
+            DesignCatalogDarkPreviewSection()
+        }
+    }
+
+    /// 单栏调色板 —— 8 行 swatch + 中文名 + 注解。环境 colorScheme 决定描边色。
+    private func paletteColumn(title: String, palette: [Color]) -> some View {
+        VStack(alignment: .leading, spacing: VoxlueSpacing.sm) {
+            Text(title)
+                .font(VoxlueTypography.meta)
+                .foregroundStyle(VoxlueColor.graphite)
+                .tracking(2)
+            ForEach(Array(palette.enumerated()), id: \.offset) { idx, color in
+                HStack(spacing: VoxlueSpacing.sm) {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(color)
+                        .frame(width: 28, height: 18)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 4)
+                                .strokeBorder(VoxlueColor.paperShadow, lineWidth: 0.5)
+                        )
+                    Text(VoxlueColor.paletteNames[idx])
+                        .font(VoxlueTypography.meta)
+                        .foregroundStyle(VoxlueColor.graphite)
+                }
+            }
+        }
+        .padding(VoxlueSpacing.md)
+        .background(
+            RoundedRectangle(cornerRadius: VoxlueRadius.card, style: .continuous)
+                .fill(VoxlueColor.paperHighlight)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: VoxlueRadius.card, style: .continuous)
+                .strokeBorder(VoxlueColor.paperShadow, lineWidth: 0.75)
+        )
     }
 
     private var typographySection: some View {
@@ -81,7 +133,7 @@ public struct DesignCatalogView: View {
                 waveform
             }
             NegativeCard(title: "潜伏中的一段声", meta: "已埋下 · 等一个地点") {
-                Rectangle().fill(VoxlueColor.graphite)
+                Rectangle().fill(VoxlueColor.graphiteLight)
             }
             PaperCard {
                 Text("PaperCard —— 纸感容器基元")
@@ -107,9 +159,9 @@ public struct DesignCatalogView: View {
                     .frame(height: 160)
                 VStack(spacing: VoxlueSpacing.lg) {
                     GlassControlBar {
-                        Image(systemName: "square.grid.2x2").foregroundStyle(VoxlueColor.paper)
-                        Image(systemName: "map").foregroundStyle(VoxlueColor.paper)
-                        Image(systemName: "person.2").foregroundStyle(VoxlueColor.paper)
+                        Image(systemName: "square.grid.2x2").foregroundStyle(VoxlueColor.paperLight)
+                        Image(systemName: "map").foregroundStyle(VoxlueColor.paperLight)
+                        Image(systemName: "person.2").foregroundStyle(VoxlueColor.paperLight)
                     }
                     DevelopingIslandLabel(capsuleTitle: "咖啡馆的雨", layout: .expanded)
                 }
@@ -125,12 +177,62 @@ public struct DesignCatalogView: View {
     }
 
     private var waveform: some View {
+        // 波形条永远盖在 PhotoCard 的 negativeBlack 图像区上，用固定 light。
         HStack(spacing: 3) {
             ForEach(0..<28, id: \.self) { i in
                 Capsule()
-                    .fill(VoxlueColor.paper.opacity(0.85))
+                    .fill(VoxlueColor.paperLight.opacity(0.85))
                     .frame(width: 3, height: CGFloat(12 + (i * 7) % 70))
             }
+        }
+    }
+}
+
+/// 暗房模式整屏样片 —— 一组纸卡、纸基底、文字在 dark trait 下原地渲染，
+/// 给设计师在 light 环境也能立刻看见整面墙翻面的视觉。
+private struct DesignCatalogDarkPreviewSection: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: VoxlueSpacing.sm) {
+            Text("暗房模式 · 整屏样片")
+                .font(VoxlueTypography.meta)
+                .foregroundStyle(VoxlueColor.graphite)
+                .tracking(2)
+
+            ZStack {
+                // 在 ZStack 内 .environment(\.colorScheme, .dark) 让这一整块按 dark
+                // trait 渲染，所有 VoxlueColor 自适应 token 自动取 dark 端取值。
+                VoxlueColor.paper.ignoresSafeArea(edges: [])
+                VStack(alignment: .leading, spacing: VoxlueSpacing.md) {
+                    Text("声音的暗房")
+                        .font(VoxlueTypography.heading)
+                        .foregroundStyle(VoxlueColor.ink)
+                    Text("纸基翻成负片黑，墨翻成暖白；朱红与片基黑不变。")
+                        .font(VoxlueTypography.serifBody)
+                        .foregroundStyle(VoxlueColor.graphite)
+                    PaperCard {
+                        VStack(alignment: .leading, spacing: VoxlueSpacing.sm) {
+                            Text("PaperCard 在暗房里")
+                                .font(VoxlueTypography.serifTitle)
+                                .foregroundStyle(VoxlueColor.ink)
+                            Text("片基面是 paperHighlight 的 dark 端 —— 在 negativeBlack 上微抬一档。")
+                                .font(VoxlueTypography.caption)
+                                .foregroundStyle(VoxlueColor.graphite)
+                        }
+                    }
+                    HStack(spacing: VoxlueSpacing.md) {
+                        SealStamp(.developing)
+                        MarginNote("朱红不参与翻面")
+                    }
+                }
+                .padding(VoxlueSpacing.lg)
+            }
+            .frame(maxWidth: .infinity)
+            .clipShape(RoundedRectangle(cornerRadius: VoxlueRadius.card, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: VoxlueRadius.card, style: .continuous)
+                    .strokeBorder(VoxlueColor.paperShadow, lineWidth: 0.75)
+            )
+            .environment(\.colorScheme, .dark)
         }
     }
 }
@@ -145,7 +247,7 @@ private struct DevelopRevealDemo: View {
                 HStack(spacing: 3) {
                     ForEach(0..<28, id: \.self) { i in
                         Capsule()
-                            .fill(VoxlueColor.paper.opacity(0.85))
+                            .fill(VoxlueColor.paperLight.opacity(0.85))
                             .frame(width: 3, height: CGFloat(12 + (i * 7) % 70))
                     }
                 }
@@ -161,6 +263,11 @@ private struct DevelopRevealDemo: View {
     }
 }
 
-#Preview {
+#Preview("light") {
     DesignCatalogView()
+}
+
+#Preview("dark") {
+    DesignCatalogView()
+        .preferredColorScheme(.dark)
 }

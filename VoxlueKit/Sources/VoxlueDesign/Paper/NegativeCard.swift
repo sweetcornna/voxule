@@ -29,13 +29,15 @@ public struct NegativeCard<Image: View>: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: VoxlueSpacing.sm) {
             // 影像区 —— 与 PhotoCard 150pt 对齐，混排时行高一致。
-            // 反相态用 darkroomGray 给片孔色，留在深底上仍可识别。
+            // 反相态用 darkroomGrayLight 给片孔色，留在深底上仍可识别。
+            // 整张 NegativeCard 永远是负片黑底，文字 / 片孔都不参与 colorScheme 翻面，
+            // 否则 dark 下会变黑底黑字。
             image
                 .frame(maxWidth: .infinity)
                 .frame(height: 150)
                 .opacity(0.55)               // 未显影 —— 影像偏淡。
-                .overlay(FilmPerforations(edge: .top, holeColor: VoxlueColor.darkroomGray))
-                .overlay(FilmPerforations(edge: .bottom, holeColor: VoxlueColor.darkroomGray))
+                .overlay(FilmPerforations(edge: .top, holeColor: VoxlueColor.darkroomGrayLight))
+                .overlay(FilmPerforations(edge: .bottom, holeColor: VoxlueColor.darkroomGrayLight))
                 .overlay(alignment: .topTrailing) {
                     if let seal {
                         SealStamp(seal, delay: sealDelay)
@@ -46,11 +48,11 @@ public struct NegativeCard<Image: View>: View {
 
             Text(title)
                 .font(VoxlueTypography.serifTitle)
-                .foregroundStyle(VoxlueColor.paper)
+                .foregroundStyle(VoxlueColor.paperLight)
                 .lineLimit(1)
             Text(meta)
                 .font(VoxlueTypography.meta)
-                .foregroundStyle(VoxlueColor.darkroomGray)
+                .foregroundStyle(VoxlueColor.darkroomGrayLight)
                 .lineLimit(1)
         }
         .padding(VoxlueSpacing.lg)

@@ -19,10 +19,12 @@ public struct FilmPerforations: View {
     public static let safeContentInset: CGFloat = rowHeight + edgeInset + 4
 
     private let edge: Edge
-    /// 颜色：默认 paperHighlight 贴亮底，给到 darkroomGray 也能盖在反相黑底上。
+    /// 颜色：默认 paperHighlightLight 贴亮底 —— 片孔永远在 PhotoCard 的负片黑图像区
+    /// 之上，不跟随 colorScheme 翻面（否则 dark 下会被 elevated dark 吃掉）。
+    /// 反相态调用方传 darkroomGrayLight。
     private let holeColor: Color
 
-    public init(edge: Edge, holeColor: Color = VoxlueColor.paperHighlight) {
+    public init(edge: Edge, holeColor: Color = VoxlueColor.paperHighlightLight) {
         self.edge = edge
         self.holeColor = holeColor
     }

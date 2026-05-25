@@ -175,7 +175,9 @@ struct HomeView: View {
             .font(.system(size: 72, weight: .semibold))
             .foregroundStyle(VoxlueColor.vermillion)
             .frame(width: 200, height: 200)
-            .voxlueGlass(tint: GlassTint.vermillionWash, interactive: true)
+            // 玻璃形状与最终 clipShape 必须对齐：传 Circle()，让 specular 高光沿圆走，
+            // 避免默认 rect(22) 玻璃被 clipShape 切成一圈亮鳞（dark 下尤其刺眼）。
+            .voxlueGlass(tint: GlassTint.vermillionWash, interactive: true, in: Circle())
             .clipShape(Circle())
             .overlay(
                 // 朱红光圈 —— 按住时从 mic 边缘往外推一圈淡朱，松手即收。
@@ -274,23 +276,22 @@ struct HomeView: View {
     /// 按状态自动走 PhotoCard / NegativeCard，点击进 CapsuleDetailView。
     @ViewBuilder
     private func recentPreview(for capsule: VoxlueData.Capsule) -> some View {
-        // 「最近的一段」与缩放后的 NegativeCard 共享同一左边轴：
-        // CapsuleRow scaleEffect(0.75) 后内 padding 从 16 缩到 12pt，
-        // 标签左 padding 也设 12pt，标签字体起点与卡片标题起点垂直对齐。
-        // 不再用 MarginNote —— 左侧朱红短画与下方卡片的左缘形成双线，反而扰乱。
-        VStack(alignment: .leading, spacing: VoxlueSpacing.sm) {
+        // scaleEffect anchor: .top 让缩放后的可见卡片在 280pt 容器里横向居中 ——
+        // 旧版 anchor: .topLeading 把可见 210pt 内容钉在容器左缘，右侧空 70pt，
+        // 整块视觉左偏。改 .top 后可见内容居中，上方 Caveat 标签也跟着 VStack
+        // alignment .center 一起居中，形成「居中标签 + 居中卡片」对称布局。
+        VStack(alignment: .center, spacing: VoxlueSpacing.sm) {
             // 显示的可能是 .buried / .developing / .developed / .opened 任一状态，
             // 不一定刚埋下，所以不说「埋下的」。
             Text("最近的一段")
                 .font(VoxlueTypography.annotation)
                 .foregroundStyle(VoxlueColor.vermillion)
-                .padding(.leading, 12)
 
             NavigationLink {
                 CapsuleDetailView(capsule: capsule)
             } label: {
                 CapsuleRow(capsule: capsule)
-                    .scaleEffect(0.75, anchor: .topLeading)
+                    .scaleEffect(0.75, anchor: .top)
                     // scaleEffect 不真正缩布局尺寸，要手动收缩容器高度。
                     // 卡片原高 ≈ 216 × 0.75 ≈ 162，给一点呼吸到 168。
                     .frame(height: 168, alignment: .top)
@@ -300,7 +301,7 @@ struct HomeView: View {
             .accessibilityElement(children: .combine)
             .accessibilityLabel("最近一枚：\(capsule.title.isEmpty ? "（无题）" : capsule.title)")
         }
-        // 整个 VStack 限到 280pt 再居中放进父 VStack —— 标签 + 卡片同一左轴。
+        // 整个 VStack 限到 280pt 再居中放进父 VStack。
         .frame(maxWidth: 280)
     }
 
