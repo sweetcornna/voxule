@@ -42,11 +42,15 @@ public extension View {
     /// 默认 22pt 圆角矩形的便捷重载 —— 内部转发给泛型 overload，单一实现源。
     /// Swift 不允许默认参数 + 泛型同时写默认 `RoundedRectangle(cornerRadius:)`
     /// （类型不可推），因此分两条入口；行为完全等价。
+    ///
+    /// 用 `RoundedRectangle(cornerRadius:)` 不带 style，与旧版 `.rect(cornerRadius:)`
+    /// 一致走 `.circular` 默认（不要悄改成 `.continuous` squircle —— 视觉差异虽小，
+    /// 属于无文档默认变更）。
     func voxlueGlass(tint: Color = GlassTint.cream, interactive: Bool = false) -> some View {
         voxlueGlass(
             tint: tint,
             interactive: interactive,
-            in: RoundedRectangle(cornerRadius: VoxlueRadius.glass, style: .continuous)
+            in: RoundedRectangle(cornerRadius: VoxlueRadius.glass)
         )
     }
 }

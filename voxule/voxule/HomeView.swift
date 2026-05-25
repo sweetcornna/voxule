@@ -295,8 +295,10 @@ struct HomeView: View {
                     // scaleEffect 不真正缩布局尺寸，要手动收缩容器高度。
                     // 卡片原高在「长 title + meta 两行（兼容 PhotoCard meta lineLimit=2）」
                     // 场景能到 ≈ 232 → 缩 0.75 ≈ 174；168 会切掉底部 seal 阴影 5pt。
-                    // 提到 180 留余量，并把 alignment 改 .center 让上下气息均匀。
-                    .frame(height: 180, alignment: .center)
+                    // 提到 180 留余量。alignment 保持 .top —— 与 scaleEffect 的
+                    // `anchor: .top` 协同，缩好的卡片从容器顶部铺，底部留呼吸；
+                    // 改 .center 会让顶部多出 3pt 空白破坏对齐。
+                    .frame(height: 180, alignment: .top)
                     .clipped()
             }
             .buttonStyle(.plain)
