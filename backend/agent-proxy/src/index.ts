@@ -12,30 +12,17 @@
 export interface Env {
   // 经 `wrangler secret put MODEL_API_KEY` 注入，不入代码库。
   MODEL_API_KEY: string;
+  // 设备鉴权 token，经 `wrangler secret put DEVICE_TOKEN` 注入，不入代码库。
+  // 设备端必须带 `Authorization: Bearer <DEVICE_TOKEN>` 才能调用本代理。
+  DEVICE_TOKEN: string;
   MODEL_ENDPOINT: string;
   MODEL_NAME: string;
 }
 
+// 请求正文上限 —— digest + 候选元数据 + 多轮历史远小于此；超出即拒（D2）。
+const MAX_BODY_BYTES = 16 * 1024;
+
 // ---- 与设备端约定的数据结构（对应 Swift 侧 DTO）----
-
-interface StateDigest {
-  tension: 'low' | 'medium' | 'high';
-  sleep: 'low' | 'medium' | 'high';
-  calmCapsulesAvailable: number;
-  daysSinceLastSurfacing: number;
-}
-
-interface CapsuleMeta {
-  id: string;
-  title: string;
-  tags: string[];
-  placeName: string | null;
-}
-
-interface AgentContext {
-  candidates: CapsuleMeta[];
-  cadence: string;
-}
 
 interface ToolCall {
   name: string;
@@ -48,12 +35,17 @@ interface AgentReply {
   surfaceCapsuleID: string | null;
 }
 
+// 设备累积并整轮重发的对话历史（C3）。代理仍无状态 —— 历史由设备携带。
+// content 用 string（设备整形后的文本），对应 Anthropic Messages API 的简单形态。
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 interface RequestBody {
   sessionID?: string;
-  phase: 'start' | 'continue';
-  digest?: StateDigest;
-  context?: AgentContext;
-  turn?: { toolResults: { name: string; output: string }[]; finished: boolean };
+  // 设备每轮重发的完整对话历史。代理只把它原样转发给模型（注入 system）。
+  messages?: Message[];
 }
 
 // agent 的系统提示词 —— 陪伴定位，始终用安静的陪伴语气、不用任何临床或医疗措辞。
@@ -79,34 +71,93 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
+// 对客户端一律给不可探测的笼统错误（D23）——
+// 真正的细节只 console.error 到服务端日志，绝不回给调用方。
+function opaqueError(status: number): Response {
+  return jsonResponse({ error: 'service unavailable' }, status);
+}
+
+/**
+ * 常数时间字符串比较（D2）——
+ * 避免按字符提前返回造成的计时旁路。两串长度不等时也走满全程，
+ * 用长度差异置位 mismatch，使比较耗时与「哪一位不同」无关。
+ */
+function timingSafeEqual(a: string, b: string): boolean {
+  const aBytes = new TextEncoder().encode(a);
+  const bBytes = new TextEncoder().encode(b);
+  const len = Math.max(aBytes.length, bBytes.length);
+  let mismatch = aBytes.length === bBytes.length ? 0 : 1;
+  for (let i = 0; i < len; i++) {
+    mismatch |= (aBytes[i] ?? 0) ^ (bBytes[i] ?? 0);
+  }
+  return mismatch === 0;
+}
+
+// 设备鉴权（D2）：要求 `Authorization: Bearer <DEVICE_TOKEN>`。
+function isAuthorized(request: Request, env: Env): boolean {
+  if (!env.DEVICE_TOKEN) return false; // 未配 token 一律拒绝，绝不退化成开放代理。
+  const header = request.headers.get('Authorization') ?? '';
+  const prefix = 'Bearer ';
+  if (!header.startsWith(prefix)) return false;
+  const presented = header.slice(prefix.length);
+  return timingSafeEqual(presented, env.DEVICE_TOKEN);
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
+    // CORS：本代理仅供原生 App 调用，绝不反射任意 Origin、不发 CORS 头。
+    // 浏览器跨域请求会因缺少 ACAO 而被拦在客户端 —— 这是有意的（D2）。
     if (request.method !== 'POST') {
       return jsonResponse({ error: 'method not allowed' }, 405);
     }
-    if (!env.MODEL_API_KEY) {
-      return jsonResponse({ error: 'proxy misconfigured: missing key' }, 500);
+
+    // 配置缺失（缺 key 或缺 device token）—— 对外只给笼统错误，细节进日志（D23）。
+    if (!env.MODEL_API_KEY || !env.DEVICE_TOKEN) {
+      console.error(
+        `proxy misconfigured: ${!env.MODEL_API_KEY ? 'missing MODEL_API_KEY ' : ''}` +
+          `${!env.DEVICE_TOKEN ? 'missing DEVICE_TOKEN' : ''}`.trim()
+      );
+      return opaqueError(500);
+    }
+
+    // 设备鉴权（D2）：缺/错 token → 401，错误体不可探测。
+    if (!isAuthorized(request, env)) {
+      return jsonResponse({ error: 'unauthorized' }, 401);
+    }
+
+    // 请求正文上限（D2）：超出即 413，不读、不转发。
+    const declared = Number(request.headers.get('Content-Length') ?? '');
+    if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) {
+      return jsonResponse({ error: 'payload too large' }, 413);
+    }
+
+    // 即便没有/谎报 Content-Length，也按实际字节数兜底卡上限。
+    const raw = await request.text();
+    if (new TextEncoder().encode(raw).length > MAX_BODY_BYTES) {
+      return jsonResponse({ error: 'payload too large' }, 413);
     }
 
     let body: RequestBody;
     try {
-      body = (await request.json()) as RequestBody;
+      body = JSON.parse(raw) as RequestBody;
     } catch {
       return jsonResponse({ error: 'invalid JSON' }, 400);
     }
-    if (body.phase !== 'start' && body.phase !== 'continue') {
-      return jsonResponse({ error: 'invalid phase' }, 400);
-    }
 
-    // 把设备来的摘要 + 上下文整形成给大模型的用户消息。
-    const userContent =
-      body.phase === 'start'
-        ? `状态摘要：${JSON.stringify(body.digest)}\n` +
-          `候选胶囊：${JSON.stringify(body.context?.candidates ?? [])}\n` +
-          `浮现频率档：${body.context?.cadence ?? 'occasionally'}\n` +
-          `请决定是否浮现，并按约定 JSON 输出。`
-        : `上一轮工具结果：${JSON.stringify(body.turn?.toolResults ?? [])}\n` +
-          `请给出最终决定，并按约定 JSON 输出。`;
+    // C3：设备每轮重发完整对话历史。代理只校验形态、原样转发。
+    const messages = body.messages;
+    if (
+      !Array.isArray(messages) ||
+      messages.length === 0 ||
+      !messages.every(
+        (m) =>
+          m &&
+          (m.role === 'user' || m.role === 'assistant') &&
+          typeof m.content === 'string'
+      )
+    ) {
+      return jsonResponse({ error: 'invalid messages' }, 400);
+    }
 
     // 调大模型（Anthropic Messages API 形态）。key 在此处、且仅在此处使用。
     let modelResponse: Response;
@@ -122,15 +173,19 @@ export default {
           model: env.MODEL_NAME,
           max_tokens: 512,
           system: SYSTEM_PROMPT,
-          messages: [{ role: 'user', content: userContent }],
+          messages,
         }),
       });
-    } catch {
-      return jsonResponse({ error: 'upstream transport failed' }, 502);
+    } catch (err) {
+      // 真正的传输错误只进服务端日志（D23）。
+      console.error('upstream transport failed', err);
+      return opaqueError(502);
     }
 
     if (!modelResponse.ok) {
-      return jsonResponse({ error: `upstream status ${modelResponse.status}` }, 502);
+      // 不回显上游状态码 —— 攻击者无法借此探测后端状态（D23）。
+      console.error(`upstream status ${modelResponse.status}`);
+      return opaqueError(502);
     }
 
     // 从模型回复里抽出那段 JSON，整形成 AgentReply。
