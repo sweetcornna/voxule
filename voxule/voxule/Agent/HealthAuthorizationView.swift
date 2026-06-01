@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import VoxlueDesign
 import VoxlueServices
 
@@ -10,6 +11,7 @@ struct HealthAuthorizationView: View {
     /// 授权完成回调。
     var onFinish: (Bool) -> Void = { _ in }
 
+    @Environment(\.openURL) private var openURL
     @State private var requesting = false
 
     var body: some View {
@@ -76,6 +78,19 @@ struct HealthAuthorizationView: View {
                         .font(VoxlueTypography.caption)
                         .foregroundStyle(VoxlueColor.graphite)
                         .frame(maxWidth: .infinity)
+
+                    // 深链系统设置（C9）：HealthKit 已决定（授权 / 拒绝）后再点「继续」不会
+                    // 再弹系统弹窗，须去系统设置调整；这里给一条明确入口与引导。
+                    // 注：iOS 出于隐私不暴露「读」授权的真实态，故只引导、不显示具体授权状态。
+                    Button("已经决定过？去系统设置里调整") {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            openURL(url)
+                        }
+                    }
+                    .font(VoxlueTypography.caption)
+                    .foregroundStyle(VoxlueColor.vermillion)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, VoxlueSpacing.xs)
                 }
                 .padding(VoxlueSpacing.lg)
             }

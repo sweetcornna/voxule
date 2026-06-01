@@ -23,8 +23,29 @@ struct voxuleApp: App {
     @AppStorage("voxlue.hasSeenOnboarding") private var hasSeenOnboarding = false
     @State private var showOnboarding = false
 
-    /// serverless 代理地址 —— Task 8 部署后填入真实 Worker 地址。
-    static let agentProxyURL = URL(string: "https://voxlue-agent-proxy.example.workers.dev")!
+    /// serverless 代理地址 —— 生产由 build 配置注入，**不硬编码真实地址**（C2）：
+    /// 优先读 Info.plist 的 `AgentProxyURL`（可经 .xcconfig / build setting 注入），
+    /// 次选环境变量 `VOXLUE_AGENT_PROXY_URL`，都未配置才回退占位地址
+    /// （此时 agent 闭环 DNS 失败、走 hold 兜底，App 其余功能不受影响）。
+    static let agentProxyURL: URL = {
+        if let raw = Bundle.main.object(forInfoDictionaryKey: "AgentProxyURL") as? String,
+           !raw.isEmpty, let url = URL(string: raw) {
+            return url
+        }
+        if let raw = ProcessInfo.processInfo.environment["VOXLUE_AGENT_PROXY_URL"],
+           !raw.isEmpty, let url = URL(string: raw) {
+            return url
+        }
+        return URL(string: "https://voxlue-agent-proxy.example.workers.dev")!
+    }()
+
+    /// 设备鉴权 token（D2）—— 随 `Authorization: Bearer <token>` 上行，与 Worker
+    /// `DEVICE_TOKEN` secret 比对。**绝不硬编码到代码库**：生产由 Swift-core 负责
+    /// 从安全来源（Keychain / 配置下发）读取。此处读环境变量，缺省空串
+    /// （Worker 端会以 401 拒绝）—— Swift-core 接手后替换为真实来源。
+    static var deviceToken: String {
+        ProcessInfo.processInfo.environment["VOXLUE_DEVICE_TOKEN"] ?? ""
+    }
 
     /// 情绪浮现后台任务标识 —— 须与 Info.plist `BGTaskSchedulerPermittedIdentifiers` 一致。
     static let surfacingTaskID = "com.voxlue.app.agent.surfacing"
@@ -108,7 +129,8 @@ struct voxuleApp: App {
                 .environment(shareRouter)
                 .environment(healthEnv)
                 .task {
-                    await dependencies.bootstrap()
+                    // 测试环境不申请真实权限 —— 系统弹窗会挡住 / 卡住 XCUITest（见 bootstrap 注释）。
+                    await dependencies.bootstrap(requestPermissions: !Self.isRunningTests)
                     // 排第一次浮现唤醒 —— .backgroundTask 只注册处理器、不提交请求，
                     // 没有这一步整条 agent 闭环永不触发。幂等：同标识请求会被替换。
                     await Self.scheduleNextSurfacing()
@@ -159,7 +181,9 @@ struct voxuleApp: App {
     @MainActor
     private static func runSurfacingTask(modelContainer: ModelContainer) async {
         let container = AgentContainer(
-            modelContext: modelContainer.mainContext, proxyURL: agentProxyURL
+            modelContext: modelContainer.mainContext,
+            proxyURL: agentProxyURL,
+            deviceToken: deviceToken
         )
         await container.handleBackgroundSurfacing()
         await scheduleNextSurfacing()

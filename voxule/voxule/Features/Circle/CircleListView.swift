@@ -29,9 +29,11 @@ struct CircleListView: View {
     @State private var isLoading = true
     @State private var showCreateSheet = false
     @State private var loadError: String?
+    /// 导航路径 —— 建圈成功后 append 新圈 id，自动推进其详情页（C8）。
+    @State private var path: [UUID] = []
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             ZStack {
                 PaperBackground().ignoresSafeArea()
 
@@ -70,7 +72,13 @@ struct CircleListView: View {
                 }
             }
             .sheet(isPresented: $showCreateSheet) {
-                CreateCircleView(onCreated: { _ in Task { await reload() } })
+                // 建圈成功：先刷新列表（让 navigationDestination 能查到新圈），再推进其详情页（C8）。
+                CreateCircleView(onCreated: { created in
+                    Task {
+                        await reload()
+                        path.append(created.id)
+                    }
+                })
             }
             .task { await reload() }
             .refreshable { await reload() }

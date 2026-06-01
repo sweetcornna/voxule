@@ -12,6 +12,15 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
         super.init()
     }
 
+    /// 前台呈现 —— App 在前台时到点的时间锁通知也要弹出（C4）。
+    /// 不实现本方法，系统会在前台静默抑制通知，用户要等下次后台 reconcile 才看到。
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification
+    ) async -> UNNotificationPresentationOptions {
+        [.banner, .sound, .list]
+    }
+
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse

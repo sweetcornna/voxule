@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 import VoxlueData
 import VoxlueDesign
+import VoxlueServices
 
 /// 样片墙 —— 全部胶囊按埋下时间倒序排开，存储与浏览中心。
 /// 录音入口已搬到首页（HomeView）巨型 mic 键，这里不再放浮动入口，避免重复 chrome。
@@ -16,6 +17,9 @@ struct ShelfView: View {
     /// 这里不引 CapsuleStore，避免给样片墙再背一份依赖；
     /// 行级删除是纯本地操作，直接走 modelContext 已够。
     @Environment(\.modelContext) private var context
+
+    /// 共享触发引擎 —— 划掉后取消通知 + 重排围栏（D10）。预览未注入时为 nil。
+    @Environment(AppDependencies.self) private var dependencies: AppDependencies?
 
     /// 搜索词 —— 空串等价于不过滤，保留与 @Query 完全相同的渲染序，
     /// 保证 UI 测试 testRecordBuryPlayMainLoop 在默认空查询下不动行为契约。
@@ -106,8 +110,11 @@ struct ShelfView: View {
                 presenting: confirmingDelete
             ) { capsule in
                 Button("划掉", role: .destructive) {
+                    let id = capsule.id
                     context.delete(capsule)
                     try? context.save()
+                    // 划掉后取消该胶囊待发通知、结束 Live Activity，并按剩余胶囊重排围栏（D10）。
+                    Task { await dependencies?.engine.discard(capsuleID: id) }
                 }
                 Button("不了", role: .cancel) {}
             } message: { _ in
