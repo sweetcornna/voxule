@@ -42,48 +42,92 @@ public enum RemoteModelError: Error, Sendable {
 
 /// 真实现 —— 调自建 serverless 代理。
 /// 代理地址通过初始化注入；**API key 不在客户端，由代理持有**。
+///
+/// 鉴权（D2）：每次请求带 `Authorization: Bearer <deviceToken>`；
+/// token 由初始化注入，**绝不硬编码**（由 voxuleApp / AppDependencies 装配）。
+///
+/// 多轮历史（C3）：代理无状态，对话历史由**设备**累积并整轮重发。
+/// `startSurfacing` 建初始 user 消息并记下；`continueTurn` 追加上一轮 assistant
+/// 回复与本轮 tool-results user 消息，再重发**完整** messages 数组。
 public final class HTTPRemoteModelClient: RemoteModelClient, @unchecked Sendable {
     private let proxyURL: URL
     private let session: URLSession
-    /// 一次浮现会话的 ID，让代理把多轮请求串起来（代理仍无状态 —— ID 仅由请求体携带）。
+    /// 设备鉴权 token —— 注入，不硬编码。随 `Authorization: Bearer` 头上行。
+    private let deviceToken: String
+    /// 一次浮现会话的 ID，便于日志关联（代理仍无状态 —— ID 仅由请求体携带）。
     private let sessionID = UUID().uuidString
 
-    public init(proxyURL: URL, session: URLSession = .shared) {
+    /// 跨网络的一条对话消息（对应代理 / Anthropic Messages API 的 {role, content}）。
+    private struct Message: Codable {
+        let role: String   // "user" | "assistant"
+        let content: String
+    }
+
+    private struct RequestBody: Codable {
+        let sessionID: String
+        let messages: [Message]
+    }
+
+    /// 设备累积的完整对话历史 —— 每轮整体重发（C3）。
+    /// 串行访问：AgentGateway 在 @MainActor 上顺序 await，不会并发改它。
+    private var messages: [Message] = []
+    /// 上一轮 agent 回复 —— 下一轮要把它作为 assistant 消息回填进历史。
+    private var lastReply: AgentReply?
+
+    public init(proxyURL: URL, deviceToken: String, session: URLSession = .shared) {
         self.proxyURL = proxyURL
+        self.deviceToken = deviceToken
         self.session = session
     }
 
     public func startSurfacing(digest: StateDigest, context: AgentContext) async throws -> AgentReply {
-        struct StartBody: Codable {
-            let sessionID: String
-            let phase: String
-            let digest: StateDigest
-            let context: AgentContext
-        }
-        return try await post(StartBody(
-            sessionID: sessionID, phase: "start", digest: digest, context: context
-        ))
+        // 建初始 user 消息（digest + 非敏感上下文整形成文本），作为历史第一条。
+        let userContent =
+            "状态摘要：\(encodeJSONString(digest))\n" +
+            "候选胶囊：\(encodeJSONString(context.candidates))\n" +
+            "浮现频率档：\(context.cadence)\n" +
+            "请决定是否浮现，并按约定 JSON 输出。"
+        messages = [Message(role: "user", content: userContent)]
+        let reply = try await post(messages)
+        lastReply = reply
+        return reply
     }
 
     public func continueTurn(_ turn: AgentTurn) async throws -> AgentReply {
-        struct ContinueBody: Codable {
-            let sessionID: String
-            let phase: String
-            let turn: AgentTurn
+        // 把上一轮 assistant 回复回填进历史（按模型当初输出的 JSON 形态），
+        // 再追加本轮 tool-results 的 user 消息 —— 多轮工具循环不再丢上下文（C3）。
+        if let prior = lastReply {
+            messages.append(Message(role: "assistant", content: encodeJSONString(prior)))
         }
-        return try await post(ContinueBody(
-            sessionID: sessionID, phase: "continue", turn: turn
-        ))
+        let userContent =
+            "上一轮工具结果：\(encodeJSONString(turn.toolResults))\n" +
+            "请给出最终决定，并按约定 JSON 输出。"
+        messages.append(Message(role: "user", content: userContent))
+        let reply = try await post(messages)
+        lastReply = reply
+        return reply
     }
 
-    private func post<Body: Encodable>(_ body: Body) async throws -> AgentReply {
+    /// 把 Encodable 编码成紧凑 JSON 字符串（嵌进对话消息正文）。失败回退空对象。
+    private func encodeJSONString<T: Encodable>(_ value: T) -> String {
+        guard let data = try? JSONEncoder().encode(value),
+              let str = String(data: data, encoding: .utf8) else {
+            return "{}"
+        }
+        return str
+    }
+
+    private func post(_ messages: [Message]) async throws -> AgentReply {
         var request = URLRequest(url: proxyURL)
         request.httpMethod = "POST"
         // 后台任务运行时间有限，给代理调用一个较短超时，超时即走 hold 兜底。
         request.timeoutInterval = 15
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        // 注意：这里没有 Authorization 头 —— key 由代理持有，客户端不碰。
-        request.httpBody = try JSONEncoder().encode(body)
+        // 设备鉴权（D2）：带 Bearer token；大模型 API key 仍由代理持有，客户端不碰。
+        request.setValue("Bearer \(deviceToken)", forHTTPHeaderField: "Authorization")
+        request.httpBody = try JSONEncoder().encode(
+            RequestBody(sessionID: sessionID, messages: messages)
+        )
         let (data, response): (Data, URLResponse)
         do {
             (data, response) = try await session.data(for: request)

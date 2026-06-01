@@ -57,3 +57,20 @@ import VoxlueData
         try await service.acceptShare(from: URL(string: "https://example.com/hello")!)
     }
 }
+
+// D24: 精确 host 校验 —— 子串钓鱼域名必须被拒，合法 icloud 域名通过。
+@Test func looksLikeShareURLRejectsLookalikeHosts() {
+    // 钓鱼：host 含 "icloud.com" 子串但并非 icloud 域。
+    #expect(!FakeCircleServicing.looksLikeShareURL(
+        URL(string: "https://icloud.com.attacker.test/share/x")!))
+    #expect(!FakeCircleServicing.looksLikeShareURL(
+        URL(string: "https://evil-icloud.com/share/x")!))
+    // 非 https 拒。
+    #expect(!FakeCircleServicing.looksLikeShareURL(
+        URL(string: "http://www.icloud.com/share/x")!))
+    // 合法。
+    #expect(FakeCircleServicing.looksLikeShareURL(
+        URL(string: "https://www.icloud.com/share/0ABC")!))
+    #expect(FakeCircleServicing.looksLikeShareURL(
+        URL(string: "https://icloud.com/share/0ABC")!))
+}

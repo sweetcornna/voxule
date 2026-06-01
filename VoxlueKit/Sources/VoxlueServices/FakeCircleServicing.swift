@@ -53,8 +53,15 @@ public final class FakeCircleServicing: CircleServicing {
 
     /// 一个 URL 是否长得像 CKShare 邀请链接。真实 CKShare 链接形如
     /// `https://www.icloud.com/share/<token>`。纯函数，`nonisolated` 便于各处调用。
+    ///
+    /// 安全（D24）：host 必须**精确**是 icloud.com 或其子域，且 scheme 为 https。
+    /// 旧实现用 `host.contains("icloud.com")` 子串匹配，`icloud.com.attacker.net`
+    /// 之类的钓鱼域名可绕过，诱使 App 向攻击者 URL 发起 CloudKit shareMetadata 查询。
     nonisolated public static func looksLikeShareURL(_ url: URL) -> Bool {
-        guard let host = url.host(), host.contains("icloud.com") else { return false }
+        guard url.scheme?.lowercased() == "https",
+              let host = url.host()?.lowercased() else { return false }
+        let isICloudHost = host == "icloud.com" || host.hasSuffix(".icloud.com")
+        guard isICloudHost else { return false }
         return url.path().contains("/share/")
     }
 }

@@ -22,11 +22,32 @@ public final class Capsule {
     /// 对外 API 不变，仍是 `capsule.lock`。
     private var lockData: Data = Capsule.encode(.mood(notBefore: nil))
 
-    /// 胶囊的锁。读写经 lockData 编解码。
+    /// 锁的种类，与 `lockData` 同步持久化。两个作用：
+    /// 1) 即便 payload 解码失败也绝不丢失锁的「类型」（D11：不把定时/地点锁悄悄
+    ///    降级成随时可浮现的情绪锁）；
+    /// 2) `lockKind` 高频读取（样片墙 / 地图 / reconcile / 蒸馏）无需解码整段 payload（D25）。
+    private var lockKindRaw: String = Lock.Kind.mood.rawValue
+
+    /// 解码后的锁缓存 —— 不持久化，避免每次访问都新建 JSONDecoder 重解（D25）。
+    @Transient private var cachedLock: Lock?
+
+    /// 胶囊的锁。读写经 lockData 编解码，解码结果缓存。
     public var lock: Lock {
-        get { (try? JSONDecoder().decode(Lock.self, from: lockData)) ?? .mood(notBefore: nil) }
-        set { lockData = Capsule.encode(newValue) }
+        get {
+            if let cachedLock { return cachedLock }
+            let decoded = Capsule.decodeLock(from: lockData, kindRaw: lockKindRaw)
+            cachedLock = decoded
+            return decoded
+        }
+        set {
+            lockData = Capsule.encode(newValue)
+            lockKindRaw = newValue.kind.rawValue
+            cachedLock = newValue
+        }
     }
+
+    /// 锁的种类 —— 不解码 payload 的廉价读取（D25）。
+    public var lockKind: Lock.Kind { Lock.Kind(rawValue: lockKindRaw) ?? .mood }
 
     public var recipient: Recipient = Recipient.me
     /// recipient == .circle 时指向 Circle.id。
@@ -45,6 +66,12 @@ public final class Capsule {
 
     public var createdAt: Date = Date()
     public var openedAt: Date?
+    /// 胶囊被「浮现」（buried → developing）的时刻。蒸馏「距上次浮现天数」用（D12）。
+    public var surfacedAt: Date?
+
+    /// 所属声音圈 —— CKShare 时把胶囊记录挂到 Circle 这棵共享树下，受邀方才看得到（D7）。
+    /// 与 `circleID`（保留给 @Query / #Predicate 的查询键）并存：分配进圈时两者同写。
+    public var circle: Circle?
 
     /// 创建时只设录制流程已知的字段；latitude/longitude/placeName/weather/tags/note
     /// 等元数据由上层在创建后补写。
@@ -69,6 +96,7 @@ public final class Capsule {
         self.waveform = waveform
         self.state = state
         self.lockData = Capsule.encode(lock)
+        self.lockKindRaw = lock.kind.rawValue
         self.recipient = recipient
         self.circleID = circleID
         self.authorID = authorID
@@ -76,7 +104,16 @@ public final class Capsule {
         self.createdAt = createdAt
     }
 
-    private static func encode(_ lock: Lock) -> Data {
+    static func encode(_ lock: Lock) -> Data {
         (try? JSONEncoder().encode(lock)) ?? Data()
+    }
+
+    /// 解码锁 payload；失败时按持久化的 kind 回退到一把「绝不自动浮现」的安全锁，
+    /// 绝不把定时/地点锁静默降级成随时可浮现的情绪锁（D11）。
+    static func decodeLock(from data: Data, kindRaw: String) -> Lock {
+        if let decoded = try? JSONDecoder().decode(Lock.self, from: data) {
+            return decoded
+        }
+        return Lock.safeFallback(forKindRaw: kindRaw)
     }
 }

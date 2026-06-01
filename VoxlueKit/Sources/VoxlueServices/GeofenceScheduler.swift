@@ -45,4 +45,29 @@ public enum GeofenceScheduler {
     private static func distance(from origin: CLLocation, to region: GeofenceRegion) -> Double {
         origin.distance(from: CLLocation(latitude: region.latitude, longitude: region.longitude))
     }
+
+    /// 决定应把哪批围栏交给系统监听。
+    /// - 有定位：按最近裁出至多 20 个。
+    /// - 无定位且能全装下（≤20）：全装。
+    /// - 无定位且超额：返回 `nil` 表示「维持现状」—— 绝不按 (0,0) 乱排选错的 20 个，
+    ///   等首次定位到达再裁（D16）。
+    public static func regionsToMonitor(
+        userLocation: (latitude: Double, longitude: Double)?,
+        from regions: [GeofenceRegion]
+    ) -> [GeofenceRegion]? {
+        if let userLocation {
+            return nearest(to: userLocation, from: regions)
+        }
+        if regions.count <= systemLimit {
+            return regions
+        }
+        return nil
+    }
+
+    /// 把围栏半径夹到系统可监听区间 `[1, maxRadius]`（D17）。
+    /// 超过 `CLLocationManager.maximumRegionMonitoringDistance` 时系统会静默不监听；
+    /// 半径 ≤ 0 同样非法。夹紧保证围栏一定被系统接受。
+    public static func clampedRadius(_ radius: Double, max maxRadius: Double) -> Double {
+        min(Swift.max(radius, 1), maxRadius)
+    }
 }

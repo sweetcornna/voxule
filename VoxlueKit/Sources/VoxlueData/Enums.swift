@@ -13,6 +13,17 @@ public enum CapsuleState: String, Codable, CaseIterable, Sendable {
     case developing   // 显影中 · 灵动岛 + 霜化动效
     case developed    // 已显影 · 等你听
     case opened       // 已开启
+
+    /// 显影推进次序 —— 状态机只许前进（buried → developing → developed → opened），
+    /// 不许回退（D27）。
+    var progressRank: Int {
+        switch self {
+        case .buried: 0
+        case .developing: 1
+        case .developed: 2
+        case .opened: 3
+        }
+    }
 }
 
 /// 声音圈成员角色。

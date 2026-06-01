@@ -57,3 +57,35 @@ private func region(lat: Double, lon: Double) -> GeofenceRegion {
     )
     #expect(result.isEmpty)
 }
+
+// MARK: - D16 无定位时的监听决策
+
+@Test func regionsToMonitorUsesNearestWhenLocationKnown() {
+    let regions = (0..<50).map { region(lat: Double($0), lon: 0) }
+    let result = GeofenceScheduler.regionsToMonitor(
+        userLocation: (latitude: 0, longitude: 0), from: regions
+    )
+    #expect(result?.count == 20)
+}
+
+@Test func regionsToMonitorKeepsAllWhenNoLocationButUnderLimit() {
+    let regions = (0..<5).map { region(lat: Double($0), lon: 0) }
+    let result = GeofenceScheduler.regionsToMonitor(userLocation: nil, from: regions)
+    #expect(result?.count == 5)
+}
+
+@Test func regionsToMonitorHoldsCurrentSetWhenNoLocationAndOverLimit() {
+    // 无定位且超额：返回 nil（维持现状），绝不按 (0,0) 乱排选错的 20 个。
+    let regions = (0..<50).map { region(lat: Double($0), lon: 0) }
+    let result = GeofenceScheduler.regionsToMonitor(userLocation: nil, from: regions)
+    #expect(result == nil)
+}
+
+// MARK: - D17 半径夹紧
+
+@Test func clampedRadiusBoundsToSystemRange() {
+    #expect(GeofenceScheduler.clampedRadius(80, max: 1000) == 80)      // 区间内不变
+    #expect(GeofenceScheduler.clampedRadius(0, max: 1000) == 1)        // ≤0 → 1
+    #expect(GeofenceScheduler.clampedRadius(-50, max: 1000) == 1)      // 负 → 1
+    #expect(GeofenceScheduler.clampedRadius(200_000, max: 1000) == 1000) // 超限 → max
+}
