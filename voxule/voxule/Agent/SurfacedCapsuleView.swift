@@ -15,6 +15,8 @@ struct SurfacedCapsuleView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.dismiss) private var dismiss
+    /// 共享触发引擎 —— 开启后结束灵动岛 Live Activity（D9）。预览未注入时为 nil。
+    @Environment(AppDependencies.self) private var dependencies: AppDependencies?
     @Query private var capsules: [VoxlueData.Capsule]
     @State private var playFailed = false
     @State private var developed = false
@@ -171,6 +173,9 @@ struct SurfacedCapsuleView: View {
         guard !deferring else { return }
         if let capsule, capsule.state == .developing {
             try? CapsuleStore(context: context).updateState(capsule, to: .opened)
+            // 开启即结束灵动岛 Live Activity，否则永驻、占用系统活动槽（D9）。
+            let id = capsule.id
+            Task { await dependencies?.engine.markOpened(capsuleID: id) }
         }
     }
 }

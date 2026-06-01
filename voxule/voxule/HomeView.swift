@@ -232,8 +232,9 @@ struct HomeView: View {
     }
 
     /// 浮现待听 pill —— 顶在 heading 上方的一小颗 chrome。
-    /// 朱红呼吸点 + 「有 N 段等你听 →」，点击 push 进最新一段 developing 胶囊的
-    /// CapsuleDetailView。SurfacedCapsuleView 会接管渲染（state == .developing）。
+    /// 朱红呼吸点 + 「有 N 段等你听 →」，点击进最新一段 developing 胶囊的
+    /// SurfacedCapsuleView —— 与通知 / 灵动岛入口同一套浮现体验（「听听看 / 等等再说」、
+    /// 不会一进就标 opened）（C6）。此前误进普通 CapsuleDetailView，首播即标 opened。
     /// 没有 developing 胶囊时，外部 `if` 直接不渲染 —— 默认布局完全不变。
     @ViewBuilder
     private var surfacingPill: some View {
@@ -241,7 +242,7 @@ struct HomeView: View {
         // 但用 if let 让 SwiftUI diff 时类型一致、preview 也更稳。
         if let first = developingCapsules.first {
             NavigationLink {
-                CapsuleDetailView(capsule: first)
+                SurfacedCapsuleView(capsuleID: first.id)
             } label: {
                 HStack(spacing: VoxlueSpacing.sm) {
                     Circle()

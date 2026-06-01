@@ -42,9 +42,16 @@ final class AppDependencies {
         backgroundTasks.register()
     }
 
-    /// App 启动后调用：排下一次后台重扫、订阅围栏、首次兜底重扫。
-    func bootstrap() async {
+    /// App 启动后调用：申请权限、排下一次后台重扫、订阅围栏、首次兜底重扫。
+    /// - Parameter requestPermissions: 是否在启动时申请通知/定位权限。UI/单元测试下传 false ——
+    ///   真实系统权限弹窗会挡住 XCUITest 自动化、甚至卡住 test runner 连接握手。
+    func bootstrap(requestPermissions: Bool = true) async {
         backgroundTasks.scheduleNext()
+        if requestPermissions {
+            // 申请通知 / 定位权限 —— 此前全 App 零调用，时间锁通知永不显示、地点锁围栏永不触发（D4）。
+            await engine.requestNotificationPermission()
+            await engine.requestLocationPermission()
+        }
         await engine.start()
         await engine.reconcile()
     }

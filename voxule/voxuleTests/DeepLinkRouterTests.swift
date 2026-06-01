@@ -52,3 +52,34 @@ private func waitUntilSettled(_ router: DeepLinkRouter) async throws {
         try await Task.sleep(for: .milliseconds(10))
     }
 }
+
+// MARK: - CapsuleRouter 深链解析（C10：voxlue://capsule/<uuid> 此前零测试）
+
+@MainActor
+@Test func capsuleRouterParsesValidDeepLink() {
+    let router = CapsuleRouter()
+    let id = UUID()
+    router.handle(url: URL(string: "voxlue://capsule/\(id.uuidString)")!)
+    #expect(router.routedCapsuleID == id)
+}
+
+@MainActor
+@Test func capsuleRouterIgnoresWrongScheme() {
+    let router = CapsuleRouter()
+    router.handle(url: URL(string: "https://capsule/\(UUID().uuidString)")!)
+    #expect(router.routedCapsuleID == nil)
+}
+
+@MainActor
+@Test func capsuleRouterIgnoresWrongHost() {
+    let router = CapsuleRouter()
+    router.handle(url: URL(string: "voxlue://circle/\(UUID().uuidString)")!)
+    #expect(router.routedCapsuleID == nil)
+}
+
+@MainActor
+@Test func capsuleRouterIgnoresMalformedUUID() {
+    let router = CapsuleRouter()
+    router.handle(url: URL(string: "voxlue://capsule/not-a-uuid")!)
+    #expect(router.routedCapsuleID == nil)
+}

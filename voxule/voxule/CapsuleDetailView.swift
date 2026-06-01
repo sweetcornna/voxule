@@ -14,8 +14,9 @@ struct CapsuleDetailView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
 
-    /// 拉一遍按 createdAt 倒序的全表，用来给底部「上一枚 / 下一枚」找邻居。
-    @Query(sort: \VoxlueData.Capsule.createdAt, order: .reverse) private var allCapsules: [VoxlueData.Capsule]
+    /// 共享触发引擎 —— 开启后结束 Live Activity，删除后取消通知并重排围栏（D9/D10）。
+    /// 可选：预览/未注入环境时为 nil，调用即无操作。
+    @Environment(AppDependencies.self) private var dependencies: AppDependencies?
 
     @State private var loaded = false
     @State private var loadFailed = false
@@ -40,7 +41,7 @@ struct CapsuleDetailView: View {
                     playbackControls
                     metadata
                     developingTimeline
-                    prevNextNav
+                    NeighborNav(currentID: capsule.id)
                 }
                 .padding(VoxlueSpacing.lg)
             }
@@ -70,9 +71,8 @@ struct CapsuleDetailView: View {
                         CirclePickerView(selectedCircleID: Binding(
                             get: { capsule.circleID },
                             set: { newID in
-                                capsule.circleID = newID
-                                capsule.recipient = newID == nil ? .me : .circle
-                                try? context.save()
+                                // 经 store 同写 circleID + circle 关系（D7）。
+                                try? CapsuleStore(context: context).assignCircle(capsule, circleID: newID)
                             }
                         ))
                     } header: {
@@ -85,9 +85,7 @@ struct CapsuleDetailView: View {
 
                     Section {
                         Button("移到「自己」", role: .destructive) {
-                            capsule.circleID = nil
-                            capsule.recipient = .me
-                            try? context.save()
+                            try? CapsuleStore(context: context).assignCircle(capsule, circleID: nil)
                             showingCirclePicker = false
                         }
                     }
@@ -151,6 +149,7 @@ struct CapsuleDetailView: View {
     /// 划掉：先停播放器（不然 AVAudioPlayer 还在抓 data）→ store.delete → dismiss。
     private func performDelete() {
         player.pause()
+        let id = capsule.id
         do {
             try CapsuleStore(context: context).delete(capsule)
         } catch {
@@ -158,6 +157,8 @@ struct CapsuleDetailView: View {
             context.delete(capsule)
             try? context.save()
         }
+        // 删除后取消该胶囊待发通知、结束 Live Activity，并按剩余胶囊重排围栏（D10）。
+        Task { await dependencies?.engine.discard(capsuleID: id) }
         dismiss()
     }
 
@@ -489,15 +490,21 @@ struct CapsuleDetailView: View {
     }
 
     private func prepare() {
-        guard !loaded else { return }
         guard let data = capsule.audioData, !data.isEmpty else {
+            loaded = false
             loadFailed = true
             return
         }
         do {
+            // 每次 onAppear 都把本胶囊音频重新装入共享播放器：env.player 是全局单例，
+            // 从邻居详情返回后它可能仍持有邻居的音频；旧的一次性 `!loaded` 守卫会跳过
+            // 重装，导致按下播放放出的是邻居的声音、还把本枚错标成已听（D6）。
+            player.pause()
             try player.load(data)
             loaded = true
+            loadFailed = false
         } catch {
+            loaded = false
             loadFailed = true
         }
     }
@@ -515,13 +522,86 @@ struct CapsuleDetailView: View {
     private func markOpenedIfNeeded() {
         guard capsule.state != .opened else { return }
         try? CapsuleStore(context: context).updateState(capsule, to: .opened)
+        // 开启后结束可能仍在显示的灵动岛 Live Activity（D9）。
+        let id = capsule.id
+        Task { await dependencies?.engine.markOpened(capsuleID: id) }
     }
 
-    // MARK: - 上一枚 / 下一枚
+    private var displayTitle: String {
+        capsule.title.isEmpty ? "（无题）" : capsule.title
+    }
 
-    /// 在 createdAt 倒序的全表里定位当前胶囊。删除后可能是 nil —— 上层会 dismiss。
+    /// 片基小字 —— 锁 · 时长 · 状态。
+    private var headerMeta: String {
+        var parts: [String] = [lockLabel]
+        if capsule.duration > 0 {
+            parts.append(durationString)
+        }
+        parts.append(capsule.state.displayLabel)
+        return parts.joined(separator: " · ")
+    }
+
+    private var progressTimeString: String {
+        timeString(player.progress * capsule.duration)
+    }
+
+    private var durationString: String { timeString(capsule.duration) }
+
+    private func timeString(_ seconds: TimeInterval) -> String {
+        let total = Int(seconds)
+        return String(format: "%02d:%02d", total / 60, total % 60)
+    }
+
+    private var lockLabel: String {
+        switch capsule.lockKind {
+        case .place: "地点锁"
+        case .date: "时间锁"
+        case .mood: "情绪锁"
+        }
+    }
+
+    private var lockDetail: String {
+        switch capsule.lock {
+        case .place(_, _, let radius, let placeName):
+            let name = placeName.isEmpty ? "某个地方" : placeName
+            return "走到「\(name)」附近 \(Int(radius))m"
+        case .date(let target):
+            let now = Date()
+            if target > now {
+                let days = Calendar.current.dateComponents([.day], from: now, to: target).day ?? 0
+                return days == 0 ? "今天显影" : "还有 \(days) 天显影"
+            } else {
+                let days = Calendar.current.dateComponents([.day], from: target, to: now).day ?? 0
+                return days == 0 ? "今天到期" : "已过期 \(days) 天"
+            }
+        case .mood:
+            return "voxlue 觉得合适时浮现"
+        }
+    }
+
+    private var sealKind: SealStamp.Kind {
+        switch capsule.state {
+        case .buried: .buried
+        case .developing: .developing
+        case .developed: .developed
+        case .opened: .opened
+        }
+    }
+}
+
+/// 「上一枚 / 下一枚」导航 —— 独立子视图 + 自带 @Query（D22）。
+/// 关键：把邻居定位的 O(n) `firstIndex` 扫描从父视图 body 里挪出来。父视图 body 因读
+/// `player.progress` 每秒重算约 20 次；旧实现会跟着 20×/秒做全表扫描。本子视图只在
+/// SwiftData 数据变化时才重算邻居，与回放进度彻底解耦。
+private struct NeighborNav: View {
+    let currentID: UUID
+
+    @Query(sort: \VoxlueData.Capsule.createdAt, order: .reverse)
+    private var allCapsules: [VoxlueData.Capsule]
+
+    /// 在 createdAt 倒序的全表里定位当前胶囊。删除后可能是 nil。
     private var currentIndex: Int? {
-        allCapsules.firstIndex(where: { $0.id == capsule.id })
+        allCapsules.firstIndex(where: { $0.id == currentID })
     }
 
     /// 「上一枚」= 倒序表里的前一项（更新的一枚）；边界返回 nil。
@@ -536,9 +616,7 @@ struct CapsuleDetailView: View {
         return allCapsules[idx + 1]
     }
 
-    /// 底部两枚朱红药丸：左前 / 右后。push 新的 CapsuleDetailView，
-    /// 返回时沿 NavigationStack 一路回退。
-    private var prevNextNav: some View {
+    var body: some View {
         HStack(spacing: VoxlueSpacing.lg) {
             if let prev = previousCapsule {
                 NavigationLink {
@@ -573,67 +651,6 @@ struct CapsuleDetailView: View {
         .padding(.vertical, VoxlueSpacing.sm)
         .background(VoxlueColor.paperHighlight, in: Capsule())
         .voxlueShadow(.paper)
-    }
-
-    private var displayTitle: String {
-        capsule.title.isEmpty ? "（无题）" : capsule.title
-    }
-
-    /// 片基小字 —— 锁 · 时长 · 状态。
-    private var headerMeta: String {
-        var parts: [String] = [lockLabel]
-        if capsule.duration > 0 {
-            parts.append(durationString)
-        }
-        parts.append(capsule.state.displayLabel)
-        return parts.joined(separator: " · ")
-    }
-
-    private var progressTimeString: String {
-        timeString(player.progress * capsule.duration)
-    }
-
-    private var durationString: String { timeString(capsule.duration) }
-
-    private func timeString(_ seconds: TimeInterval) -> String {
-        let total = Int(seconds)
-        return String(format: "%02d:%02d", total / 60, total % 60)
-    }
-
-    private var lockLabel: String {
-        switch capsule.lock.kind {
-        case .place: "地点锁"
-        case .date: "时间锁"
-        case .mood: "情绪锁"
-        }
-    }
-
-    private var lockDetail: String {
-        switch capsule.lock {
-        case .place(_, _, let radius, let placeName):
-            let name = placeName.isEmpty ? "某个地方" : placeName
-            return "走到「\(name)」附近 \(Int(radius))m"
-        case .date(let target):
-            let now = Date()
-            if target > now {
-                let days = Calendar.current.dateComponents([.day], from: now, to: target).day ?? 0
-                return days == 0 ? "今天显影" : "还有 \(days) 天显影"
-            } else {
-                let days = Calendar.current.dateComponents([.day], from: target, to: now).day ?? 0
-                return days == 0 ? "今天到期" : "已过期 \(days) 天"
-            }
-        case .mood:
-            return "voxlue 觉得合适时浮现"
-        }
-    }
-
-    private var sealKind: SealStamp.Kind {
-        switch capsule.state {
-        case .buried: .buried
-        case .developing: .developing
-        case .developed: .developed
-        case .opened: .opened
-        }
     }
 }
 

@@ -1,5 +1,7 @@
 import SwiftUI
 import SwiftData
+import MapKit
+import CoreLocation
 import VoxlueData
 import VoxlueDesign
 import VoxlueServices
@@ -7,8 +9,20 @@ import VoxlueServices
 /// 装裱视图 —— 给录音选锁、选收件人、定标题，确认后埋下。
 struct FramingView: View {
     let recording: RecordingResult
+    /// 端侧代写标题服务（C5）。默认真实现；预览/测试可注入 Fake。
+    let intelligence: any IntelligenceServicing
     /// 埋下成功后回调，用于关掉整个录音流程。
     let onBuried: () -> Void
+
+    init(
+        recording: RecordingResult,
+        intelligence: any IntelligenceServicing = IntelligenceService(),
+        onBuried: @escaping () -> Void
+    ) {
+        self.recording = recording
+        self.intelligence = intelligence
+        self.onBuried = onBuried
+    }
 
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
@@ -23,6 +37,20 @@ struct FramingView: View {
     @State private var saveFailed = false
     /// 「埋下」后短暂停留 0.7s 的盖章仪式 —— 让落地的瞬间有「装裱完成」的实感。
     @State private var isBurying = false
+    /// 代写标题进行中 —— 防重复点 + 给按钮一个 inflight 态。
+    @State private var isDrafting = false
+
+    // MARK: - 地点锁选点状态（C1）
+    /// 地点锁选定坐标。默认上海市中心，用户移动地图微调。
+    @State private var placeCoordinate = CLLocationCoordinate2D(latitude: 31.2304, longitude: 121.4737)
+    @State private var placeName = ""
+    @State private var placeRadius: Double = 100
+    @State private var mapPosition: MapCameraPosition = .region(
+        MKCoordinateRegion(
+            center: CLLocationCoordinate2D(latitude: 31.2304, longitude: 121.4737),
+            span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+        )
+    )
 
     var body: some View {
         Form {
@@ -47,10 +75,11 @@ struct FramingView: View {
                 TextField("给这张声音起个名", text: $title)
                     .font(VoxlueTypography.serifBody)
                 Button("让冲洗师代写", systemImage: "wand.and.stars") {
-                    title = draftTitle()
+                    Task { await draftTitle() }
                 }
                 .font(VoxlueTypography.caption)
                 .foregroundStyle(VoxlueColor.vermillion)
+                .disabled(isDrafting)
             } header: {
                 sectionHeader("标题")
             }
@@ -68,6 +97,9 @@ struct FramingView: View {
                     DatePicker("到这天显影", selection: $dateLockTarget,
                                in: Date()..., displayedComponents: [.date])
                         .font(VoxlueTypography.serifBody)
+                }
+                if lockKind == .place {
+                    placePicker
                 }
                 VStack(alignment: .leading, spacing: VoxlueSpacing.xs) {
                     Text(lockHintTitle)
@@ -181,18 +213,79 @@ struct FramingView: View {
         }
     }
 
-    /// 端侧大模型代写标题的接入点。v1 先用占位实现，计划 06 接 IntelligenceService。
-    private func draftTitle() -> String {
-        let pool = ["未命名的雨", "某个安静的下午", "留给以后的声音", "一段没说完的话"]
-        return pool.randomElement() ?? "未命名"
+    /// 地点锁选点 —— 移动地图把中心朱红针对准要解锁的地方，配地名与范围（C1）。
+    private var placePicker: some View {
+        VStack(alignment: .leading, spacing: VoxlueSpacing.sm) {
+            TextField("这个地方叫什么", text: $placeName)
+                .font(VoxlueTypography.serifBody)
+            ZStack {
+                Map(position: $mapPosition)
+                    .frame(height: 180)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .onMapCameraChange(frequency: .onEnd) { context in
+                        // 地图中心即所选坐标。
+                        placeCoordinate = context.region.center
+                    }
+                // 固定在中心的朱红针 —— 不拦截手势，地图照常拖动。
+                Image(systemName: "mappin")
+                    .font(.title2)
+                    .foregroundStyle(VoxlueColor.vermillion)
+                    .allowsHitTesting(false)
+            }
+            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+            HStack {
+                Text("范围")
+                    .font(VoxlueTypography.caption)
+                    .foregroundStyle(VoxlueColor.graphite)
+                Slider(value: $placeRadius, in: 50...500, step: 10)
+                Text("\(Int(placeRadius))m")
+                    .font(VoxlueTypography.meta)
+                    .foregroundStyle(VoxlueColor.graphite)
+            }
+            Text("移动地图，把朱红针对准要解锁的地方。")
+                .font(VoxlueTypography.caption)
+                .foregroundStyle(VoxlueColor.graphite)
+        }
     }
+
+    /// 端侧模型代写标题（C5）—— 调真实 IntelligenceService；端上模型不可用（模拟器/旧机/
+    /// 离线）时回退到一组诗意占位，绝不空着。
+    private func draftTitle() async {
+        isDrafting = true
+        defer { isDrafting = false }
+        let drafted = await intelligence.draftTitle(forTranscriptHint: draftHint)
+        title = drafted ?? offlineTitlePool.randomElement() ?? "未命名"
+    }
+
+    /// 给端侧模型的关键词提示 —— 无语音转写，用已有的标题草稿 + 锁语境拼一个粗提示。
+    private var draftHint: String {
+        var parts: [String] = []
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty { parts.append(trimmed) }
+        switch lockKind {
+        case .place: parts.append(placeName.isEmpty ? "某个地方" : placeName)
+        case .date: parts.append("留给未来")
+        case .mood: parts.append("安静的时刻")
+        }
+        parts.append("一段环境声")
+        return parts.joined(separator: " ")
+    }
+
+    /// 端上模型不可用时的离线兜底标题池。
+    private let offlineTitlePool = ["未命名的雨", "某个安静的下午", "留给以后的声音", "一段没说完的话"]
 
     /// 由 lockKind 与表单状态组装出最终的 Lock。
     private func makeLock() -> Lock {
         switch lockKind {
         case .place:
-            // 地点锁的坐标在计划 03 的地图里细选，这里先落一个占位围栏。
-            return .place(latitude: 0, longitude: 0, radius: 100, placeName: "待选地点")
+            return .place(
+                latitude: placeCoordinate.latitude,
+                longitude: placeCoordinate.longitude,
+                radius: placeRadius,
+                placeName: placeName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    ? "选定的地点"
+                    : placeName.trimmingCharacters(in: .whitespacesAndNewlines)
+            )
         case .date:
             return .date(dateLockTarget)
         case .mood:
@@ -212,7 +305,12 @@ struct FramingView: View {
             circleID: recipient == .circle ? selectedCircleID : nil
         )
         do {
-            try CapsuleStore(context: context).add(capsule)
+            let store = CapsuleStore(context: context)
+            try store.add(capsule)
+            // 给声音圈时同写 circle 关系（D7）—— CKShare 把胶囊挂到 Circle 共享树下的前提。
+            if recipient == .circle, let cid = selectedCircleID {
+                try? store.assignCircle(capsule, circleID: cid)
+            }
             // UI 测试环境下跳过 0.7s 仪式 —— 测试只给 0.8s buffer，且无须再演一次盖章。
             if Self.skipsCeremony {
                 onBuried()

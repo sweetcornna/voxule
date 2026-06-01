@@ -151,7 +151,7 @@ struct RecordView: View {
                         if recorder.elapsed > 5 {
                             confirmingCancel = true
                         } else {
-                            recorder.cancel()
+                            discard()
                             dismiss()
                         }
                     }
@@ -161,7 +161,7 @@ struct RecordView: View {
             }
             .confirmationDialog("丢掉这段录音？", isPresented: $confirmingCancel, titleVisibility: .visible) {
                 Button("丢掉", role: .destructive) {
-                    recorder.cancel()
+                    discard()
                     dismiss()
                 }
                 Button("继续录", role: .cancel) {}
@@ -181,6 +181,12 @@ struct RecordView: View {
             .navigationDestination(item: $result) { recording in
                 FramingView(recording: recording) { dismiss() }
             }
+        }
+        // 兜底：无论经哪条路径离开冲洗台（取消 / 丢掉 / 关闭），都拆掉实时采样计时器。
+        // 旧版仅 stop() 拆，两条取消路径会把 10Hz 计时器永久留在 runloop 上空转（D19）。
+        .onDisappear {
+            sampleTimer?.invalidate()
+            sampleTimer = nil
         }
     }
 
@@ -221,6 +227,13 @@ struct RecordView: View {
                 if liveSamples.count > 80 { liveSamples.removeFirst() }
             }
         }
+    }
+
+    /// 丢弃当前录音：先拆实时采样计时器，再取消录音。两条取消路径共用，避免计时器空转（D19）。
+    private func discard() {
+        sampleTimer?.invalidate()
+        sampleTimer = nil
+        recorder.cancel()
     }
 
     private func stop() {

@@ -11,8 +11,11 @@ final class AgentContainer {
     let intelligence: any IntelligenceServicing
 
     /// 生产装配 —— 真服务 + 真代理。
-    /// - Parameter proxyURL: serverless 代理地址（Task 8 部署后得到）。
-    init(modelContext: ModelContext, proxyURL: URL) {
+    /// - Parameters:
+    ///   - proxyURL: serverless 代理地址（Task 8 部署后得到）。
+    ///   - deviceToken: 设备鉴权 token，随 `Authorization: Bearer` 上行，与 Worker
+    ///     `DEVICE_TOKEN` secret 比对（D2）。由壳层从安全来源注入，绝不硬编码。
+    init(modelContext: ModelContext, proxyURL: URL, deviceToken: String) {
         let store = CapsuleStore(context: modelContext)
         #if os(iOS)
         let health: any HealthProviding = HealthKitHealthProvider()
@@ -20,7 +23,7 @@ final class AgentContainer {
         let health: any HealthProviding = FakeHealthProviding(snapshot: nil)
         #endif
         let distiller = SignalDistiller(health: health, store: store)
-        let client = HTTPRemoteModelClient(proxyURL: proxyURL)
+        let client = HTTPRemoteModelClient(proxyURL: proxyURL, deviceToken: deviceToken)
         // 后台轮里现装一个 TriggerEngine —— 它读 SwiftData、surface() 只更新
         // 胶囊状态并起 Live Activity，无需复用壳层那个实例。
         let trigger = TriggerEngine(
