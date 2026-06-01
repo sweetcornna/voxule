@@ -2,8 +2,9 @@ name = "voxlue-agent-proxy"
 main = "src/index.ts"
 compatibility_date = "2026-05-22"
 
-# 大模型 API key 不写在这里 —— 它是 secret，用 `wrangler secret put` 注入。
-# 见 README.md「部署步骤」。
+# secret 都不写在这里 —— 用 `wrangler secret put` 注入，绝不入库。见 README.md「部署步骤」：
+#   - MODEL_API_KEY ：大模型 API key（代理持有，设备永不见）。
+#   - DEVICE_TOKEN  ：设备鉴权 token，设备调用须带 `Authorization: Bearer <DEVICE_TOKEN>`。
 [vars]
 # 非敏感配置可放这里。MODEL_ENDPOINT 默认指向 Anthropic Messages API。
 MODEL_ENDPOINT = "https://api.anthropic.com/v1/messages"
