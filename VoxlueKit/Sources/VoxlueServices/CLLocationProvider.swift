@@ -15,12 +15,16 @@ public final class CLLocationProvider: NSObject, LocationProviding, CLLocationMa
     private let continuation: AsyncStream<GeofenceEvent>.Continuation
     public let events: AsyncStream<GeofenceEvent>
 
-    /// 当前申请权限的回调（一次性）。
+    /// 可变状态由 `stateLock` 串行化 —— CL 代理回调来自系统线程，monitor() 来自调用方
+    /// 线程，二者并发读写 allRegions / permissionContinuation / count 会数据竞争（D14）。
+    private let stateLock = NSLock()
+    /// 当前申请权限的回调（一次性）。stateLock 保护。
     private var permissionContinuation: CheckedContinuation<Bool, Never>?
-    /// 全量候选围栏 —— 用户移动时据此重排。
+    /// 全量候选围栏 —— 用户移动时据此重排。stateLock 保护。
     private var allRegions: [GeofenceRegion] = []
-    /// 当前正在被系统监听的围栏数（测试可读）。
-    public private(set) var monitoredRegionCount = 0
+    /// 当前正在被系统监听的围栏数（测试可读）。stateLock 保护。
+    private var _monitoredRegionCount = 0
+    public var monitoredRegionCount: Int { stateLock.withLock { _monitoredRegionCount } }
 
     public override init() {
         var captured: AsyncStream<GeofenceEvent>.Continuation!
@@ -31,21 +35,35 @@ public final class CLLocationProvider: NSObject, LocationProviding, CLLocationMa
         manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
     }
 
+    deinit {
+        // 流必须显式收尾 —— 否则消费者的 `for await` 永不结束、任务泄漏挂起（D15）。
+        continuation.finish()
+    }
+
     // MARK: - LocationProviding
 
     public func requestPermission() async -> Bool {
-        if manager.authorizationStatus == .authorizedAlways
-            || manager.authorizationStatus == .authorizedWhenInUse {
+        switch manager.authorizationStatus {
+        case .authorizedAlways, .authorizedWhenInUse:
             return true
+        case .denied, .restricted:
+            // iOS 此时既不弹窗也不再回调 didChangeAuthorization —— 必须立即返回，
+            // 否则 continuation 永不 resume、调用方永久挂起（D5）。
+            return false
+        default:
+            break   // .notDetermined：走申请流程。
         }
+        // 防重入：已有等待中的申请就不再覆盖（旧实现会泄漏首个 continuation）（D5）。
+        let alreadyWaiting = stateLock.withLock { permissionContinuation != nil }
+        if alreadyWaiting { return false }
         return await withCheckedContinuation { continuation in
-            permissionContinuation = continuation
+            stateLock.withLock { permissionContinuation = continuation }
             manager.requestAlwaysAuthorization()
         }
     }
 
     public func monitor(regions: [GeofenceRegion]) async {
-        allRegions = regions
+        stateLock.withLock { allRegions = regions }
         manager.startMonitoringSignificantLocationChanges()
         applyNearestRegions()
     }
@@ -53,8 +71,12 @@ public final class CLLocationProvider: NSObject, LocationProviding, CLLocationMa
     // MARK: - CLLocationManagerDelegate
 
     public func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        guard let continuation = permissionContinuation else { return }
-        permissionContinuation = nil
+        let continuation = stateLock.withLock {
+            let c = permissionContinuation
+            permissionContinuation = nil
+            return c
+        }
+        guard let continuation else { return }
         let granted = manager.authorizationStatus == .authorizedAlways
             || manager.authorizationStatus == .authorizedWhenInUse
         continuation.resume(returning: granted)
@@ -78,29 +100,35 @@ public final class CLLocationProvider: NSObject, LocationProviding, CLLocationMa
 
     /// 用当前用户位置裁出最近 20 个围栏，替换系统监听集。
     private func applyNearestRegions() {
-        let user = manager.location.map {
+        // 无定位（冷启动常见）时不按 (0,0) 乱排：能全装下就全装，超额则维持现状，
+        // 等首次定位到达再裁（D16）。
+        let user: (latitude: Double, longitude: Double)? = manager.location.map {
             (latitude: $0.coordinate.latitude, longitude: $0.coordinate.longitude)
-        } ?? (latitude: 0, longitude: 0)
-
-        let nearest = GeofenceScheduler.nearest(to: user, from: allRegions)
+        }
+        let snapshot = stateLock.withLock { allRegions }
+        guard let nearest = GeofenceScheduler.regionsToMonitor(userLocation: user, from: snapshot) else {
+            return   // 无定位且超额 —— 保持当前监听集不动。
+        }
 
         // 先停掉旧的，再装新的 —— 永不越过 20 上限。
         for monitored in manager.monitoredRegions {
             manager.stopMonitoring(for: monitored)
         }
+        let maxRadius = manager.maximumRegionMonitoringDistance
         for region in nearest {
             let circular = CLCircularRegion(
                 center: CLLocationCoordinate2D(
                     latitude: region.latitude, longitude: region.longitude
                 ),
-                radius: region.radius,
+                // 半径夹到系统可监听区间，否则超限会被静默忽略、围栏永不触发（D17）。
+                radius: GeofenceScheduler.clampedRadius(region.radius, max: maxRadius),
                 identifier: region.capsuleID.uuidString
             )
             circular.notifyOnEntry = true
             circular.notifyOnExit = false
             manager.startMonitoring(for: circular)
         }
-        monitoredRegionCount = nearest.count
+        stateLock.withLock { _monitoredRegionCount = nearest.count }
     }
 }
 #endif

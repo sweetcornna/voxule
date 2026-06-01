@@ -151,7 +151,10 @@ public final class AudioEngine: NSObject, AudioRecording, AudioPlaying {
     }
 
     private func refreshProgress() {
-        guard let player, player.duration > 0 else { return }
+        // 必须先校验仍在播放：pause()/seek() 只 invalidate 未来触发，已入队的这个
+        // Task 仍会跑；没有 isPlaying 守卫它会用陈旧 currentTime 覆盖刚 seek 的进度
+        // 或在暂停后继续推进，造成进度闪烁/回跳（D18）。
+        guard isPlaying, let player, player.duration > 0 else { return }
         progress = min(1, player.currentTime / player.duration)
     }
 }

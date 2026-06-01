@@ -35,7 +35,9 @@ public final class BackgroundTaskCoordinator {
                 task.setTaskCompleted(success: false)
                 return
             }
-            self.runReconcileTask(refreshTask)
+            // 系统在后台线程调用本 handler；runReconcileTask 是 @MainActor，
+            // 必须显式 hop 到主 actor，不能在后台线程上同步进入（D20）。
+            Task { @MainActor in self.runReconcileTask(refreshTask) }
         }
     }
 

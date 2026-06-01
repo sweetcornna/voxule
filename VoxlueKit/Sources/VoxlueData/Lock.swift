@@ -23,3 +23,19 @@ public enum Lock: Codable, Hashable, Sendable {
         }
     }
 }
+
+extension Lock {
+    /// payload 损坏时按 kind 回退到一把「绝不自动浮现」的安全锁（D11）。
+    /// 定时锁回退到 distantFuture、地点锁回退到半径 0（围栏不监听）、情绪锁回退到
+    /// notBefore distantFuture —— 任何回退都只会让锁更难触发，绝不更易触发。
+    static func safeFallback(forKindRaw kindRaw: String) -> Lock {
+        switch Kind(rawValue: kindRaw) {
+        case .date:
+            return .date(.distantFuture)
+        case .place:
+            return .place(latitude: 0, longitude: 0, radius: 0, placeName: "")
+        case .mood, .none:
+            return .mood(notBefore: .distantFuture)
+        }
+    }
+}

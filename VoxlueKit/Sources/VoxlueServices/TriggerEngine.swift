@@ -50,7 +50,42 @@ public final class TriggerEngine: TriggerEngineProtocol {
         guard let capsule = capsule(id: capsuleID) else { return }
         guard capsule.state == .buried else { return }
         try? store.updateState(capsule, to: .developing)
+        // 浮现即取消该胶囊待发的时间锁通知 —— 否则系统仍会到点再弹一次，指向一枚
+        // 已显影 / 已被看到的胶囊（D10）。非时间锁胶囊无待发通知，cancel 为无操作。
+        await notifications.cancel(capsuleID: capsule.id)
         await liveActivity.start(capsuleID: capsule.id, title: displayTitle(capsule))
+    }
+
+    /// 胶囊被开启 / 播放后调用：结束其灵动岛 Live Activity（否则永驻、永久占用系统
+    /// 活动槽，D9），并取消任何残留的待发通知。`TriggerEngineProtocol` 是冻结契约
+    /// （路线图 §3.2），故这些生命周期收尾作为具体类型的附加方法提供，由持有具体
+    /// `TriggerEngine` 的 App 壳层（AppDependencies）调用。
+    public func markOpened(capsuleID: UUID) async {
+        await liveActivity.end(capsuleID: capsuleID)
+        await notifications.cancel(capsuleID: capsuleID)
+    }
+
+    /// 胶囊被删除后调用：取消待发通知、结束 Live Activity，并按剩余胶囊重建围栏 ——
+    /// 否则被删胶囊的通知仍会到点弹出（指向一枚已不存在的胶囊），其地点围栏也继续
+    /// 占用系统监听槽（D10）。须在 `store.delete` 之后调用（重建围栏会读当前库）。
+    public func discard(capsuleID: UUID) async {
+        await notifications.cancel(capsuleID: capsuleID)
+        await liveActivity.end(capsuleID: capsuleID)
+        let remaining = (try? store.allCapsules()) ?? []
+        await refreshGeofences(from: remaining)
+    }
+
+    /// 申请本地通知权限 —— 不申请则时间锁「重逢」通知永远被系统抑制、永不显示（D4）。
+    /// 作为具体类型的附加方法（冻结协议 §3.2 不变），由 App 壳层 bootstrap 时调用。
+    @discardableResult
+    public func requestNotificationPermission() async -> Bool {
+        await notifications.requestPermission()
+    }
+
+    /// 申请定位权限 —— 不申请则地点锁围栏无从监听、永不触发。与通知权限一并在 bootstrap 申请。
+    @discardableResult
+    public func requestLocationPermission() async -> Bool {
+        await location.requestPermission()
     }
 
     /// 全量重扫 —— App 启动 / 后台刷新时调用，是时间锁与地点锁的兜底。
@@ -63,7 +98,9 @@ public final class TriggerEngine: TriggerEngineProtocol {
         for capsule in capsules where capsule.state == .buried {
             switch capsule.lock {
             case .date(let fireAt):
-                if fireAt <= now {
+                // 近未来（本分钟内）的时间锁直接即时浮现：UNCalendarNotificationTrigger
+                // 只精确到分钟，本分钟内的 fireAt 永不 fire，会留下空档（D26）。
+                if Self.shouldSurfaceNow(fireAt: fireAt, now: now) {
                     await surface(capsuleID: capsule.id)
                 } else {
                     try? await notifications.scheduleDateLock(
@@ -121,5 +158,16 @@ public final class TriggerEngine: TriggerEngineProtocol {
 
     private func displayTitle(_ capsule: VoxlueData.Capsule) -> String {
         capsule.title.isEmpty ? "一张待显影的相" : capsule.title
+    }
+
+    /// 时间锁是否应即时浮现（而非交给本地通知）。纯函数，便于测试（D26）。
+    /// 规则：fireAt 已过 → 即时；或 fireAt 落在「本分钟内」（早于下一分钟整点）——
+    /// 因为日历通知只精确到分钟，本分钟内的触发时间不会再 fire。
+    nonisolated static func shouldSurfaceNow(fireAt: Date, now: Date, calendar: Calendar = .current) -> Bool {
+        if fireAt <= now { return true }
+        let comps = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: now)
+        guard let startOfThisMinute = calendar.date(from: comps) else { return false }
+        let startOfNextMinute = startOfThisMinute.addingTimeInterval(60)
+        return fireAt < startOfNextMinute
     }
 }

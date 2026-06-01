@@ -14,6 +14,11 @@ public final class Circle {
     @Relationship(deleteRule: .cascade)
     public var members: [CircleMember]? = []
 
+    /// 圈内胶囊 —— CKShare 把胶囊记录挂到 Circle 这棵共享树下，受邀方才看得到（D7）。
+    /// 删除圈只解除关联、不删胶囊（nullify）。CloudKit 镜像要求关系可选。
+    @Relationship(deleteRule: .nullify, inverse: \Capsule.circle)
+    public var capsules: [Capsule]? = []
+
     public init(
         id: UUID = UUID(),
         name: String = "",

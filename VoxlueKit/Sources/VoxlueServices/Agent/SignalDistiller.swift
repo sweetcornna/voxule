@@ -21,8 +21,8 @@ public struct SignalDistiller: SignalDistilling {
         let snapshot = await health.snapshot()
         let tension = Self.tensionLevel(from: snapshot)
         let sleep = Self.sleepLevel(from: snapshot?.sleepHours)
-        let calm = await calmCapsuleCount()
-        let days = await daysSinceLastSurfacing()
+        // 单次取全表，派生两个上下文指标 —— 避免一轮 distill 多次全表 fetch（D21）。
+        let (calm, days) = await capsuleContext()
         return StateDigest(
             tension: tension,
             sleep: sleep,
@@ -57,25 +57,33 @@ public struct SignalDistiller: SignalDistilling {
 
     // MARK: - App 上下文（非健康，可粗粒度参与摘要）
 
+    /// 单次取全表，在 MainActor 上派生「平静胶囊数」与「距上次浮现天数」（D21）。
     @MainActor
-    private func calmCapsuleCount() async -> Int {
+    private func capsuleContext() -> (calm: Int, days: Int) {
         let all = (try? store.allCapsules()) ?? []
+        return (Self.calmCapsuleCount(from: all), Self.daysSinceLastSurfacing(from: all))
+    }
+
+    static func calmCapsuleCount(from all: [Capsule]) -> Int {
         let calmTags: Set<String> = ["平静", "calm", "安心", "海", "雨"]
         return all.filter { capsule in
-            capsule.lock.kind == .mood
+            capsule.lockKind == .mood
                 && !Set(capsule.tags).isDisjoint(with: calmTags)
         }.count
     }
 
-    @MainActor
-    private func daysSinceLastSurfacing() async -> Int {
-        let all = (try? store.allCapsules()) ?? []
-        // 最近一次「已显影/已开启」的情绪胶囊的 openedAt（或 createdAt）。
-        let surfaced = all
-            .filter { $0.lock.kind == .mood && ($0.state == .developed || $0.state == .opened) }
-            .compactMap { $0.openedAt ?? $0.createdAt }
+    static func daysSinceLastSurfacing(from all: [Capsule]) -> Int {
+        // 最近一次「浮现过」的情绪胶囊的浮现时刻。纳入 .developing（已浮现未开启）——
+        // 旧实现漏了 developing、且用 createdAt 兜底，会把「刚浮现」误报成几个月前，
+        // 致 agent 误判很久没浮现而过度打扰（D12）。优先用真实浮现时刻 surfacedAt。
+        let lastSurfaced = all
+            .filter {
+                $0.lockKind == .mood
+                    && ($0.state == .developing || $0.state == .developed || $0.state == .opened)
+            }
+            .compactMap { $0.surfacedAt ?? $0.openedAt }
             .max()
-        guard let last = surfaced else { return 99 }
+        guard let last = lastSurfaced else { return 99 }
         return max(0, Calendar.current.dateComponents([.day], from: last, to: Date()).day ?? 0)
     }
 }

@@ -25,6 +25,11 @@ public final class FakeLocationProviding: LocationProviding, @unchecked Sendable
         continuation = captured
     }
 
+    deinit {
+        // 与真实现一致：释放时收尾事件流，消费者的 `for await` 才会正常结束（D15）。
+        continuation.finish()
+    }
+
     public func requestPermission() async -> Bool { permissionGranted }
 
     public func monitor(regions: [GeofenceRegion]) async {
